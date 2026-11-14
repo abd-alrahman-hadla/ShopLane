@@ -1,0 +1,293 @@
+// ShopLane data model. All money is stored as integer cents.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Users & auth (Auth.js v5 Prisma adapter shape) ────────────────────────
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  addresses Address[]
+  cart      Cart?
+  orders    Order[]
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  fullName   String
+  line1      String
+  line2      String?
+  city       String
+  region     String
+  postalCode String
+  country    String   @default("US")
+  phone      String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Catalog ───────────────────────────────────────────────────────────────
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  description   String
+  status        ProductStatus @default(DRAFT)
+  featured      Boolean       @default(false)
+  categoryId    String
+  /// Denormalized from variants (see features/catalog/pricing.ts) so lists can sort by price.
+  minPriceCents Int           @default(0)
+  maxPriceCents Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  category Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants Variant[]
+  images   ProductImage[]
+
+  @@index([status, categoryId])
+  @@index([featured])
+}
+
+model Variant {
+  id                  String   @id @default(cuid())
+  productId           String
+  sku                 String   @unique
+  title               String
+  size                String?
+  color               String?
+  priceCents          Int
+  compareAtPriceCents Int?
+  stock               Int      @default(0)
+  position            Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  product    Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  images     ProductImage[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([productId])
+  @@index([size])
+  @@index([color])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  /// Optional: image specific to one variant (e.g. a colorway).
+  variantId String?
+  url       String
+  alt       String
+  position  Int     @default(0)
+
+  product Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([productId, position])
+}
+
+// ─── Cart (signed-in users; guests use the persisted Zustand store) ────────
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  variantId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, variantId])
+}
+
+// ─── Orders & payments ─────────────────────────────────────────────────────
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  SHIPPED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id                      String      @id @default(cuid())
+  /// Human-facing order number, displayed as SL-<number>.
+  number                  Int         @unique @default(autoincrement())
+  userId                  String?
+  email                   String
+  status                  OrderStatus @default(PENDING)
+  currency                String      @default("usd")
+  subtotalCents           Int
+  discountCents           Int         @default(0)
+  shippingCents           Int         @default(0)
+  taxCents                Int         @default(0)
+  totalCents              Int
+  couponId                String?
+  couponCode              String?
+  /// Snapshot of the shipping address at purchase time.
+  shippingAddress         Json?
+  stripeCheckoutSessionId String?     @unique
+  stripePaymentIntentId   String?
+  paidAt                  DateTime?
+  shippedAt               DateTime?
+  cancelledAt             DateTime?
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  user   User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  coupon Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  items  OrderItem[]
+
+  @@index([userId])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id             String  @id @default(cuid())
+  orderId        String
+  variantId      String?
+  // Snapshot of the product at purchase time; survives later catalog edits.
+  productName    String
+  variantTitle   String
+  sku            String
+  imageUrl       String?
+  unitPriceCents Int
+  quantity       Int
+  lineTotalCents Int
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+model Coupon {
+  id               String     @id @default(cuid())
+  code             String     @unique
+  type             CouponType
+  /// Percent (1–100) for PERCENTAGE, cents for FIXED_AMOUNT.
+  value            Int
+  minSubtotalCents Int?
+  maxRedemptions   Int?
+  redemptionCount  Int        @default(0)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  orders Order[]
+}
+
+/// Processed Stripe webhook events, for idempotency.
+model StripeEvent {
+  id          String   @id
+  type        String
+  processedAt DateTime @default(now())
+}

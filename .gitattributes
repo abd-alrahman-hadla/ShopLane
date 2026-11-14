@@ -1,0 +1,3 @@
+# Prisma stores a checksum of each migration file; keep line endings stable on Windows.
+prisma/migrations/**/*.sql text eol=lf
+prisma/migrations/migration_lock.toml text eol=lf
