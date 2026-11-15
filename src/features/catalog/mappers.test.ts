@@ -7,6 +7,8 @@ const baseRow: ProductCardRow = {
   name: "Stoneware Mug",
   minPriceCents: 2200,
   maxPriceCents: 2400,
+  ratingSum: 23,
+  ratingCount: 5,
   category: { name: "Cups & Accessories" },
   images: [{ url: "https://example.com/a.jpg", alt: "A mug" }],
   variants: [
@@ -27,6 +29,7 @@ describe("toProductCard", () => {
       hasPriceRange: true,
       compareAtCents: 2600,
       inStock: true,
+      rating: { average: 4.6, count: 5 },
     });
   });
 
@@ -48,5 +51,9 @@ describe("toProductCard", () => {
 
   it("handles a product without images", () => {
     expect(toProductCard({ ...baseRow, images: [] }).image).toBeNull();
+  });
+
+  it("has no rating until the product is reviewed", () => {
+    expect(toProductCard({ ...baseRow, ratingSum: 0, ratingCount: 0 }).rating).toBeNull();
   });
 });

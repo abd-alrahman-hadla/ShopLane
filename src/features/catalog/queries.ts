@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
+import { ratingSummary } from "@/features/reviews/rating";
 import { db } from "@/lib/db";
 import { CATALOG_TAGS } from "./cache";
 import type { CatalogFilters } from "./filters";
@@ -17,12 +18,14 @@ import { buildOrderBy, buildProductWhere, buildScopeWhere, getPageWindow } from 
 /** Fallback time-based revalidation; tags purge sooner on admin edits. */
 const REVALIDATE_SECONDS = 3600;
 
-const productCardSelect = {
+export const productCardSelect = {
   id: true,
   slug: true,
   name: true,
   minPriceCents: true,
   maxPriceCents: true,
+  ratingSum: true,
+  ratingCount: true,
   category: { select: { name: true } },
   images: { select: { url: true, alt: true }, orderBy: { position: "asc" }, take: 1 },
   variants: { select: { priceCents: true, compareAtPriceCents: true, stock: true } },
@@ -136,9 +139,13 @@ async function loadProductDetail(slug: string): Promise<ProductDetail | null> {
         orderBy: { position: "asc" },
         select: { id: true, url: true, alt: true, variantId: true },
       },
+      ratingSum: true,
+      ratingCount: true,
     },
   });
-  return row;
+  if (!row) return null;
+  const { ratingSum, ratingCount, ...product } = row;
+  return { ...product, rating: ratingSummary(ratingSum, ratingCount) };
 }
 
 /** Product detail, cached per slug and purged by `product:<slug>` or `products`. */

@@ -2,6 +2,8 @@
 import { db } from "@/lib/db";
 
 const TABLES = [
+  "Review",
+  "WishlistItem",
   "OrderItem",
   "Order",
   "CartItem",
@@ -86,6 +88,13 @@ export async function createCoupon(options: {
       redemptionCount: options.redemptionCount ?? 0,
       endsAt: options.endsAt ?? null,
     },
+  });
+}
+
+export async function createUser(options: { email?: string; name?: string } = {}) {
+  const n = next();
+  return db.user.create({
+    data: { email: options.email ?? `user${n}@example.com`, name: options.name ?? `Test User${n}` },
   });
 }
 

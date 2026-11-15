@@ -6,18 +6,25 @@ import { expect, test, type Page } from "@playwright/test";
  */
 
 async function productNames(page: Page): Promise<string[]> {
-  return page.getByTestId("product-name").allTextContents();
+  // Scoped to <main>: streamed (hidden) copies of server content must not count.
+  return page.getByRole("main").getByTestId("product-name").allTextContents();
 }
 
 async function cardPrices(page: Page): Promise<number[]> {
-  const texts = await page.getByTestId("product-card").getByTestId("price").allTextContents();
+  const texts = await page
+    .getByRole("main")
+    .getByTestId("product-card")
+    .getByTestId("price")
+    .allTextContents();
   return texts.map((text) => Number(text.replace(/[^0-9.]/g, "")));
 }
 
 test("home shows featured products and five categories", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Featured" })).toBeVisible();
-  await expect(page.getByTestId("product-grid").getByTestId("product-card")).toHaveCount(8);
+  await expect(
+    page.getByRole("main").getByTestId("product-grid").getByTestId("product-card"),
+  ).toHaveCount(8);
   await expect(page.getByTestId("category-tiles").getByRole("link")).toHaveCount(5);
 });
 
@@ -29,7 +36,7 @@ test.describe("filters (desktop)", () => {
     context,
   }) => {
     await page.goto("/categories/single-origin");
-    await expect(page.getByTestId("result-summary")).toHaveText("7 products");
+    await expect(page.getByRole("main").getByTestId("result-summary")).toHaveText("7 products");
 
     const sidebar = page.getByRole("complementary", { name: "Filters" });
     await sidebar.getByLabel("1 kg").check();
@@ -65,7 +72,7 @@ test.describe("filters (desktop)", () => {
 
 test("pagination links to a different page of results", async ({ page }) => {
   await page.goto("/products");
-  await expect(page.getByTestId("result-summary")).toContainText("38 products");
+  await expect(page.getByRole("main").getByTestId("result-summary")).toContainText("38 products");
   const firstPage = await productNames(page);
 
   await page.getByRole("link", { name: "Page 2" }).click();
@@ -107,7 +114,7 @@ test("search finds kettles and never shows drafts", async ({ page }) => {
 test("mobile filter sheet applies a filter", async ({ page, isMobile }) => {
   test.skip(!isMobile, "Mobile only");
   await page.goto("/categories/cups-accessories");
-  await page.getByRole("button", { name: /Filters/ }).click();
+  await page.getByRole("button", { name: /^Filters/ }).click();
   await page.getByRole("dialog").getByLabel("Sage").check();
   await expect(page).toHaveURL(/color=Sage/);
 });

@@ -31,6 +31,8 @@ model User {
   addresses Address[]
   cart      Cart?
   orders    Order[]
+  reviews   Review[]
+  wishlist  WishlistItem[]
 }
 
 model Account {
@@ -123,15 +125,50 @@ model Product {
   /// Denormalized from variants (see features/catalog/pricing.ts) so lists can sort by price.
   minPriceCents Int           @default(0)
   maxPriceCents Int           @default(0)
+  /// Denormalized from reviews (see features/reviews/reviews.ts); average = ratingSum / ratingCount.
+  ratingCount   Int           @default(0)
+  ratingSum     Int           @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  category Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  variants Variant[]
-  images   ProductImage[]
+  category      Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants      Variant[]
+  images        ProductImage[]
+  reviews       Review[]
+  wishlistItems WishlistItem[]
 
   @@index([status, categoryId])
   @@index([featured])
+}
+
+// ─── Reviews & wishlist ────────────────────────────────────────────────────
+
+/// One review per verified buyer per product (rating 1–5, validated in Zod).
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId])
+  @@index([productId, createdAt])
+}
+
+model WishlistItem {
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
 }
 
 model Variant {

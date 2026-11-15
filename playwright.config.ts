@@ -17,6 +17,9 @@ const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // Creates/removes the e2e@example.com user and its session cookie (see e2e/support/auth.ts).
+  globalSetup: "./e2e/support/global-setup.ts",
+  globalTeardown: "./e2e/support/global-teardown.ts",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,

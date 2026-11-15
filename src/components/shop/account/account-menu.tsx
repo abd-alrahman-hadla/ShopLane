@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { signOut, useSession } from "next-auth/react";
-import { UserIcon } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { useSession } from "next-auth/react";
+import { HeartIcon, UserIcon } from "lucide-react";
+import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /** Reads the session client-side so shop pages can stay statically rendered. */
@@ -24,16 +24,18 @@ export function AccountMenu() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span
-        className="text-muted-foreground hidden max-w-40 truncate text-sm md:inline"
-        title={session.user.email ?? ""}
+    <div className="flex items-center">
+      <Link
+        href="/account/wishlist"
+        className={buttonVariants({ variant: "ghost", size: "icon" })}
+        aria-label="Wishlist"
       >
-        {session.user.email}
-      </span>
-      <Button variant="ghost" onClick={() => void signOut({ redirectTo: "/" })}>
-        Sign out
-      </Button>
+        <HeartIcon />
+      </Link>
+      <Link href="/account" className={cn(buttonVariants({ variant: "ghost" }), "gap-1.5")}>
+        <UserIcon data-icon="inline-start" />
+        <span className="hidden sm:inline">Account</span>
+      </Link>
     </div>
   );
 }

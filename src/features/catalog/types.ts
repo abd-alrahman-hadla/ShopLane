@@ -1,5 +1,9 @@
 /** Plain, serializable shapes returned by catalog queries (safe for the data cache). */
 
+import type { RatingSummary } from "@/features/reviews/rating";
+
+export type { RatingSummary };
+
 export type CatalogImage = { url: string; alt: string };
 
 export type ProductCardData = {
@@ -13,6 +17,8 @@ export type ProductCardData = {
   /** "Was" price for the cheapest variant, when it is on sale. */
   compareAtCents: number | null;
   inStock: boolean;
+  /** Null until the product has at least one review. */
+  rating: RatingSummary | null;
 };
 
 export type CategorySummary = {
@@ -45,6 +51,7 @@ export type ProductDetail = {
   category: { slug: string; name: string };
   variants: VariantOption[];
   images: ProductImageData[];
+  rating: RatingSummary | null;
 };
 
 export type ProductListResult = {

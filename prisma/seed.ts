@@ -1,8 +1,12 @@
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { syncProductPriceRange } from "../src/features/catalog/pricing";
+import { seedDemoReviews } from "./seed-demo";
 import { photoUrl, photos, seedCategories, seedCoupons, seedProducts } from "./seed-data";
 import type { SeedProduct } from "./seed-data";
+
+/** Each seed transaction makes many sequential queries; allow for a distant database. */
+const SEED_TRANSACTION_OPTIONS = { timeout: 60_000, maxWait: 15_000 } as const;
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -84,7 +88,7 @@ async function seedProduct(
     });
 
     await syncProductPriceRange(tx, row.id);
-  });
+  }, SEED_TRANSACTION_OPTIONS);
 }
 
 async function seedAdmin(db: PrismaClient): Promise<void> {
@@ -135,15 +139,18 @@ async function main(): Promise<void> {
     }
     await seedAdmin(db);
     await seedCouponRows(db);
+    const reviews = await seedDemoReviews(db);
 
-    const [categories, products, variants, images] = await Promise.all([
+    const [categories, products, variants, images, demoOrders] = await Promise.all([
       db.category.count(),
       db.product.count(),
       db.variant.count(),
       db.productImage.count(),
+      db.order.count({ where: { stripeCheckoutSessionId: { startsWith: "cs_seed_" } } }),
     ]);
     console.log(
-      `Seeded ${categories} categories, ${products} products, ${variants} variants, ${images} images.`,
+      `Seeded ${categories} categories, ${products} products, ${variants} variants, ${images} images, ` +
+        `${demoOrders} demo orders, ${reviews} reviews.`,
     );
     // The seed runs outside Next, so it can't call revalidateTag().
     console.log(

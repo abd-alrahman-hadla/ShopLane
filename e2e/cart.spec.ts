@@ -46,7 +46,10 @@ test("an invalid coupon shows an error", async ({ page }) => {
 });
 
 test("checkout redirects to Stripe", async ({ page }) => {
-  test.skip(!process.env.STRIPE_SECRET_KEY, "Needs STRIPE_SECRET_KEY in .env");
+  test.skip(
+    !/^sk_test_[A-Za-z0-9]{20,}$/.test(process.env.STRIPE_SECRET_KEY ?? ""),
+    "Needs a real Stripe test key (sk_test_…) in .env",
+  );
   await page.goto("/products/cone-paper-filters");
   await page.getByRole("button", { name: "Add to cart" }).click();
   await page.getByTestId("cart-drawer").getByRole("button", { name: "Checkout" }).click();

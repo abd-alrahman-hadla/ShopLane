@@ -1,3 +1,4 @@
+import { ratingSummary } from "@/features/reviews/rating";
 import type { ProductCardData } from "./types";
 
 export type ProductCardRow = {
@@ -6,6 +7,8 @@ export type ProductCardRow = {
   name: string;
   minPriceCents: number;
   maxPriceCents: number;
+  ratingSum: number;
+  ratingCount: number;
   category: { name: string };
   images: Array<{ url: string; alt: string }>;
   variants: Array<{ priceCents: number; compareAtPriceCents: number | null; stock: number }>;
@@ -32,5 +35,6 @@ export function toProductCard(row: ProductCardRow): ProductCardData {
     compareAtCents:
       compareAt !== null && cheapest && compareAt > cheapest.priceCents ? compareAt : null,
     inStock: row.variants.some((variant) => variant.stock > 0),
+    rating: ratingSummary(row.ratingSum, row.ratingCount),
   };
 }

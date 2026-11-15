@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   buildCatalogHref,
   DEFAULT_FILTERS,
@@ -84,30 +83,6 @@ export function CatalogView({
             pageCount={result.pageCount}
           />
         </section>
-      </div>
-    </div>
-  );
-}
-
-export function CatalogSkeleton() {
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10" aria-busy="true">
-      <Skeleton className="mb-8 h-9 w-64" />
-      <div className="grid gap-10 lg:grid-cols-[15rem_1fr]">
-        <div className="hidden flex-col gap-4 lg:flex">
-          {Array.from({ length: 6 }, (_, index) => (
-            <Skeleton key={index} className="h-5 w-40" />
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3">
-          {Array.from({ length: 6 }, (_, index) => (
-            <div key={index} className="flex flex-col gap-3">
-              <Skeleton className="aspect-square w-full rounded-xl" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/3" />
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

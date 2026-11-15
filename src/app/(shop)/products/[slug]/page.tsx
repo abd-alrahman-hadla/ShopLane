@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ProductView, ProductViewFromUrl } from "@/components/shop/product/product-view";
+import { ReviewsSection } from "@/components/shop/reviews/reviews-section";
 import { getActiveProductSlugs, getProductBySlug } from "@/features/catalog/queries";
+import type { ProductDetail } from "@/features/catalog/types";
 
 // SSG/ISR: prerendered at build, purged by `product:<slug>` / `products` tags
 // on admin edits, hourly as a fallback. New products render on first request.
@@ -68,6 +70,46 @@ export default async function ProductPage({ params }: PageProps) {
         </h2>
         <p className="text-muted-foreground leading-relaxed">{product.description}</p>
       </section>
+
+      <ReviewsSection product={product} />
+
+      <script
+        type="application/ld+json"
+        // Escaped so review/product text can never close the script tag.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productJsonLd(product)).replace(/</g, "\\u003c"),
+        }}
+      />
     </div>
   );
+}
+
+/** schema.org Product with offers and, when reviewed, aggregateRating. */
+function productJsonLd(product: ProductDetail) {
+  const prices = product.variants.map((variant) => variant.priceCents);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.images.map((image) => image.url),
+    sku: product.variants[0]?.sku,
+    offers: {
+      "@type": "AggregateOffer",
+      priceCurrency: "USD",
+      lowPrice: (Math.min(...prices) / 100).toFixed(2),
+      highPrice: (Math.max(...prices) / 100).toFixed(2),
+      offerCount: product.variants.length,
+      availability: product.variants.some((variant) => variant.stock > 0)
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+    },
+    ...(product.rating && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: product.rating.average,
+        reviewCount: product.rating.count,
+      },
+    }),
+  };
 }

@@ -39,6 +39,7 @@ const eslintConfig = [
       "src/app/**/{sitemap,robots}.ts",
       "*.config.{ts,mts,mjs,js}",
       "prisma.config.ts",
+      "e2e/support/global-*.ts",
     ],
     rules: {
       "import/no-default-export": "off",

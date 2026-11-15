@@ -9,6 +9,8 @@ import { useCartDrawer, useCartStore } from "@/features/cart/store";
 import type { ProductDetail, VariantOption } from "@/features/catalog/types";
 import { imageIndexForVariant, resolveInitialVariant } from "@/features/catalog/variants";
 import { Price } from "../price";
+import { RatingSummary } from "../reviews/stars";
+import { WishlistButton } from "../wishlist/wishlist-button";
 import { ImageGallery } from "./image-gallery";
 import { VariantPicker } from "./variant-picker";
 
@@ -71,6 +73,11 @@ export function ProductView({ product, initialSku }: ProductViewProps) {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3">
           <h1 className="text-3xl font-semibold tracking-tight">{product.name}</h1>
+          {product.rating && (
+            <a href="#reviews" className="self-start hover:underline">
+              <RatingSummary rating={product.rating} className="text-sm" />
+            </a>
+          )}
           {selected && (
             <div className="flex flex-wrap items-center gap-3">
               <Price
@@ -85,7 +92,7 @@ export function ProductView({ product, initialSku }: ProductViewProps) {
         {selected && (
           <VariantPicker variants={product.variants} selected={selected} onSelect={handleSelect} />
         )}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-2">
           {/* Stock here may be slightly stale (static page); the cart re-checks on the server. */}
           <Button
             size="lg"
@@ -95,6 +102,7 @@ export function ProductView({ product, initialSku }: ProductViewProps) {
           >
             {selected && selected.stock > 0 ? "Add to cart" : "Sold out"}
           </Button>
+          <WishlistButton productId={product.id} productName={product.name} variant="labelled" />
         </div>
         {selected && (
           <p className="text-muted-foreground text-xs" data-testid="selected-sku">
