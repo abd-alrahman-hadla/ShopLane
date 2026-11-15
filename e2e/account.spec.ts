@@ -61,9 +61,13 @@ test.describe("signed in", () => {
     await expect(page.getByLabel("Name")).toHaveValue("Casey Q. Tester");
   });
 
-  test("orders page shows an empty state for a new customer", async ({ page }) => {
+  test("order history lists the customer's order with its status", async ({ page }) => {
+    const number = `SL-${String(process.env.E2E_ORDER_NUMBER).padStart(4, "0")}`;
     await page.goto("/account/orders");
-    await expect(page.getByText("You haven’t placed any orders yet.")).toBeVisible();
+    const row = page.getByRole("main").getByRole("link", { name: new RegExp(number) });
+    await expect(row).toBeVisible();
+    // The admin spec may ship this order concurrently.
+    await expect(row.getByTestId("order-status-badge")).toHaveText(/Paid|Shipped/);
   });
 
   test("wishlist: save from a product page, then remove from the account", async ({ page }) => {

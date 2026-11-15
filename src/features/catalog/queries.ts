@@ -141,6 +141,8 @@ async function loadProductDetail(slug: string): Promise<ProductDetail | null> {
       },
       ratingSum: true,
       ratingCount: true,
+      seoTitle: true,
+      seoDescription: true,
     },
   });
   if (!row) return null;

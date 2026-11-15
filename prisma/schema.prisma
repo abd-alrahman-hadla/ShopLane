@@ -33,6 +33,7 @@ model User {
   orders    Order[]
   reviews   Review[]
   wishlist  WishlistItem[]
+  auditLogs AuditLog[]
 }
 
 model Account {
@@ -115,21 +116,24 @@ model Category {
 }
 
 model Product {
-  id            String        @id @default(cuid())
-  name          String
-  slug          String        @unique
-  description   String
-  status        ProductStatus @default(DRAFT)
-  featured      Boolean       @default(false)
-  categoryId    String
+  id             String        @id @default(cuid())
+  name           String
+  slug           String        @unique
+  description    String
+  status         ProductStatus @default(DRAFT)
+  featured       Boolean       @default(false)
+  categoryId     String
   /// Denormalized from variants (see features/catalog/pricing.ts) so lists can sort by price.
-  minPriceCents Int           @default(0)
-  maxPriceCents Int           @default(0)
+  minPriceCents  Int           @default(0)
+  maxPriceCents  Int           @default(0)
   /// Denormalized from reviews (see features/reviews/reviews.ts); average = ratingSum / ratingCount.
-  ratingCount   Int           @default(0)
-  ratingSum     Int           @default(0)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  ratingCount    Int           @default(0)
+  ratingSum      Int           @default(0)
+  /// Optional overrides for <title> and meta description on the product page.
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   category      Category       @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   variants      Variant[]
@@ -276,6 +280,13 @@ model Order {
   cancelReason            String?
   refundedAt              DateTime?
   confirmationEmailSentAt DateTime?
+  fulfilledAt             DateTime?
+  /// USPS | UPS | FedEx | DHL | Other
+  trackingCarrier         String?
+  trackingNumber          String?
+  shippingEmailSentAt     DateTime?
+  /// Total refunded so far (admin refunds and charge.refunded webhooks).
+  refundedCents           Int         @default(0)
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt
 
@@ -288,17 +299,19 @@ model Order {
 }
 
 model OrderItem {
-  id             String  @id @default(cuid())
-  orderId        String
-  variantId      String?
+  id                String  @id @default(cuid())
+  orderId           String
+  variantId         String?
   // Snapshot of the product at purchase time; survives later catalog edits.
-  productName    String
-  variantTitle   String
-  sku            String
-  imageUrl       String?
-  unitPriceCents Int
-  quantity       Int
-  lineTotalCents Int
+  productName       String
+  variantTitle      String
+  sku               String
+  imageUrl          String?
+  unitPriceCents    Int
+  quantity          Int
+  lineTotalCents    Int
+  /// Units returned to stock by admin refunds (never more than quantity).
+  restockedQuantity Int     @default(0)
 
   order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   variant Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
@@ -334,4 +347,27 @@ model StripeEvent {
   id          String   @id
   type        String
   processedAt DateTime @default(now())
+}
+
+// ─── Admin ─────────────────────────────────────────────────────────────────
+
+/// One row per admin change, written in the same transaction as the change.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  /// Snapshot, so the log stays readable if the user is deleted. "system" for scripts.
+  actorEmail String
+  /// e.g. product.update, order.ship, order.refund, coupon.create
+  action     String
+  entityType String
+  entityId   String
+  summary    String
+  /// Field-level changes: { field: [before, after] }
+  changes    Json?
+  createdAt  DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([createdAt])
 }

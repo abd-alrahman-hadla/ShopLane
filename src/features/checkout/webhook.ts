@@ -16,7 +16,13 @@ export type WebhookDeps = {
 };
 
 export type WebhookOutcome =
-  "paid" | "out_of_stock_refunded" | "cancelled" | "refunded" | "duplicate" | "ignored";
+  | "paid"
+  | "out_of_stock_refunded"
+  | "cancelled"
+  | "refunded"
+  | "partially_refunded"
+  | "duplicate"
+  | "ignored";
 
 export type WebhookResult = { outcome: WebhookOutcome; orderId?: string; detail?: string };
 
@@ -174,15 +180,24 @@ const handleChargeRefunded: Handler = async (event, { tx, deps, now }) => {
   if (!order) return ignored("no matching order");
   if (order.status === "REFUNDED") return ignored("already refunded", order.id);
 
+  // Stripe's running total is authoritative (covers admin and dashboard refunds);
+  // never lower what we already recorded.
+  const refundedCents = Math.max(order.refundedCents, charge.amount_refunded);
   const fullyRefunded = charge.refunded || charge.amount_refunded >= charge.amount;
   if (!fullyRefunded) {
+    if (refundedCents === order.refundedCents)
+      return ignored("partial refund already recorded", order.id);
+    await tx.order.update({ where: { id: order.id }, data: { refundedCents } });
     deps.logger?.info(
       `[webhook] order ${order.id}: partial refund ${charge.amount_refunded}/${charge.amount}, status unchanged`,
     );
-    return ignored("partial refund", order.id);
+    return { outcome: "partially_refunded", orderId: order.id };
   }
 
-  await tx.order.update({ where: { id: order.id }, data: { status: "REFUNDED", refundedAt: now } });
+  await tx.order.update({
+    where: { id: order.id },
+    data: { status: "REFUNDED", refundedAt: now, refundedCents },
+  });
   return { outcome: "refunded", orderId: order.id };
 };
 

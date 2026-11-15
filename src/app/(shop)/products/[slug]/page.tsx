@@ -25,8 +25,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!product) return {};
   const image = product.images[0];
   return {
-    title: product.name,
-    description: product.description,
+    title: product.seoTitle ?? product.name,
+    description: product.seoDescription ?? product.description,
     alternates: { canonical: `/products/${product.slug}` },
     openGraph: image ? { images: [{ url: image.url, alt: image.alt }] } : undefined,
   };

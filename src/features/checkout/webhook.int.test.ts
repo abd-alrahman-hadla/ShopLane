@@ -244,7 +244,7 @@ describe("charge.refunded", () => {
     expect(await getVariantStock(variant.id)).toBe(4);
   });
 
-  it("keeps the status on a partial refund", async () => {
+  it("records a partial refund without changing the status", async () => {
     const { order, paymentIntentId } = await paidOrder();
 
     const result = await processStripeEvent(
@@ -252,9 +252,31 @@ describe("charge.refunded", () => {
       deps(),
     );
 
-    expect(result).toMatchObject({ outcome: "ignored", detail: "partial refund" });
-    expect((await testDb.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe("PAID");
+    expect(result).toEqual({ outcome: "partially_refunded", orderId: order.id });
+    expect(await testDb.order.findUniqueOrThrow({ where: { id: order.id } })).toMatchObject({
+      status: "PAID",
+      refundedCents: 500,
+    });
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("partial refund"));
+
+    // A later event with the same running total changes nothing.
+    const again = await processStripeEvent(
+      chargeRefundedEvent({ paymentIntentId, amount: order.totalCents, amountRefunded: 500 }),
+      deps(),
+    );
+    expect(again).toMatchObject({ outcome: "ignored", detail: "partial refund already recorded" });
+  });
+
+  it("records the full amount when the refund completes", async () => {
+    const { order, paymentIntentId } = await paidOrder();
+    await processStripeEvent(
+      chargeRefundedEvent({ paymentIntentId, amount: order.totalCents }),
+      deps(),
+    );
+    expect(await testDb.order.findUniqueOrThrow({ where: { id: order.id } })).toMatchObject({
+      status: "REFUNDED",
+      refundedCents: order.totalCents,
+    });
   });
 
   it("is idempotent across different refund events", async () => {

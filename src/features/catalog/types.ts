@@ -52,6 +52,9 @@ export type ProductDetail = {
   variants: VariantOption[];
   images: ProductImageData[];
   rating: RatingSummary | null;
+  /** Admin-set overrides for the page title and meta description. */
+  seoTitle: string | null;
+  seoDescription: string | null;
 };
 
 export type ProductListResult = {

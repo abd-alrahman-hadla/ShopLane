@@ -1,8 +1,9 @@
 import { rm } from "node:fs/promises";
-import { STORAGE_STATE, deleteE2EUser } from "./auth";
+import { ADMIN_STORAGE_STATE, STORAGE_STATE, cleanupE2EData } from "./auth";
 
-/** Removes the e2e user (and everything that cascades from it) and the stored cookie. */
+/** Removes the e2e users, their orders, e2e products/coupons and the stored cookies. */
 export default async function globalTeardown(): Promise<void> {
-  await deleteE2EUser();
+  await cleanupE2EData();
   await rm(STORAGE_STATE, { force: true });
+  await rm(ADMIN_STORAGE_STATE, { force: true });
 }
