@@ -215,7 +215,8 @@ model Order {
   /// Human-facing order number, displayed as SL-<number>.
   number                  Int         @unique @default(autoincrement())
   userId                  String?
-  email                   String
+  /// Null for guest orders until Stripe reports the customer's email.
+  email                   String?
   status                  OrderStatus @default(PENDING)
   currency                String      @default("usd")
   subtotalCents           Int
@@ -229,9 +230,15 @@ model Order {
   shippingAddress         Json?
   stripeCheckoutSessionId String?     @unique
   stripePaymentIntentId   String?
+  /// When the Stripe Checkout Session expires.
+  expiresAt               DateTime?
   paidAt                  DateTime?
   shippedAt               DateTime?
   cancelledAt             DateTime?
+  /// checkout_expired | out_of_stock | payment_failed
+  cancelReason            String?
+  refundedAt              DateTime?
+  confirmationEmailSentAt DateTime?
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt
 

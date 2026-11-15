@@ -22,8 +22,14 @@ function isSort(value: string): value is CatalogSort {
   return (SORT_OPTIONS as readonly string[]).includes(value);
 }
 
-export function SortSelect({ filters, mode }: { filters: CatalogFilters; mode: CatalogMode }) {
-  const { navigate } = useCatalogNavigation(mode);
+export function SortSelect({
+  filters: urlFilters,
+  mode,
+}: {
+  filters: CatalogFilters;
+  mode: CatalogMode;
+}) {
+  const { filters, navigate } = useCatalogNavigation(mode, urlFilters);
 
   return (
     <div className="flex items-center gap-2">

@@ -1,19 +1,39 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+const alias = { "@": fileURLToPath(new URL("./src", import.meta.url)) };
+const oxc = { jsx: { runtime: "automatic" as const } };
+
 export default defineConfig({
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
-  },
-  oxc: {
-    jsx: { runtime: "automatic" },
-  },
   test: {
-    environment: "node",
-    include: ["src/**/*.test.{ts,tsx}", "prisma/**/*.test.ts"],
-    setupFiles: ["./vitest.setup.ts"],
-    restoreMocks: true,
+    projects: [
+      {
+        resolve: { alias },
+        oxc,
+        test: {
+          name: "unit",
+          environment: "node",
+          include: ["src/**/*.test.{ts,tsx}", "prisma/**/*.test.ts"],
+          exclude: ["**/*.int.test.ts", "**/node_modules/**"],
+          setupFiles: ["./vitest.setup.ts"],
+          restoreMocks: true,
+        },
+      },
+      {
+        resolve: { alias },
+        oxc,
+        test: {
+          name: "integration",
+          environment: "node",
+          include: ["src/**/*.int.test.ts"],
+          setupFiles: ["./src/test/integration-setup.ts"],
+          // One shared test database: run files one at a time.
+          fileParallelism: false,
+          testTimeout: 60_000,
+          hookTimeout: 60_000,
+          restoreMocks: true,
+        },
+      },
+    ],
   },
 });

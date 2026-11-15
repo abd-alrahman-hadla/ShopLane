@@ -1,23 +1,30 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import {
   buildCatalogHref,
   type CatalogFilters,
   type CatalogMode,
 } from "@/features/catalog/filters";
 
-/** Pushes a new filter state to the URL, which is the single source of truth. */
-export function useCatalogNavigation(mode: CatalogMode) {
+/**
+ * Pushes a new filter state to the URL, which stays the source of truth.
+ * The returned `filters` update optimistically, so checkboxes and the sort
+ * select react on click instead of after the server render, and rapid clicks
+ * build on each other.
+ */
+export function useCatalogNavigation(mode: CatalogMode, urlFilters: CatalogFilters) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [filters, setOptimisticFilters] = useOptimistic(urlFilters);
 
-  function navigate(filters: CatalogFilters): void {
+  function navigate(next: CatalogFilters): void {
     startTransition(() => {
-      router.push(buildCatalogHref(filters, mode), { scroll: false });
+      setOptimisticFilters(next);
+      router.push(buildCatalogHref(next, mode), { scroll: false });
     });
   }
 
-  return { navigate, isPending };
+  return { filters, navigate, isPending };
 }

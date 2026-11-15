@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { CoffeeIcon } from "lucide-react";
 import type { CategorySummary } from "@/features/catalog/types";
+import { AccountMenu } from "./account/account-menu";
+import { CartButton } from "./cart/cart-button";
 import { SearchBox } from "./search-box";
 
 type SiteHeaderProps = {
@@ -30,6 +32,10 @@ export function SiteHeader({ categories }: SiteHeaderProps) {
           ))}
         </nav>
         <SearchBox className="ml-auto w-full max-w-56" />
+        <div className="flex items-center gap-1">
+          <AccountMenu />
+          <CartButton />
+        </div>
       </div>
       <nav aria-label="Categories" className="border-t lg:hidden">
         <ul className="mx-auto flex max-w-7xl gap-4 overflow-x-auto px-4 py-2 text-sm whitespace-nowrap sm:px-6">

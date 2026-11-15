@@ -1,0 +1,69 @@
+{
+  "id": "evt_1QfixtureCompleted0001",
+  "object": "event",
+  "api_version": "2026-10-28.endive",
+  "created": 1763208000,
+  "livemode": false,
+  "pending_webhooks": 1,
+  "request": { "id": null, "idempotency_key": null },
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test_a1fixtureCompleted",
+      "object": "checkout.session",
+      "amount_subtotal": 4200,
+      "amount_total": 4380,
+      "client_reference_id": "ORDER_ID",
+      "collected_information": {
+        "business_name": null,
+        "individual_name": null,
+        "shipping_details": {
+          "name": "Jamie Rivera",
+          "address": {
+            "city": "Portland",
+            "country": "US",
+            "line1": "123 Roast Street",
+            "line2": "Apt 4",
+            "postal_code": "97205",
+            "state": "OR"
+          }
+        }
+      },
+      "created": 1763206200,
+      "currency": "usd",
+      "customer": null,
+      "customer_details": {
+        "address": {
+          "city": "Portland",
+          "country": "US",
+          "line1": "123 Roast Street",
+          "line2": "Apt 4",
+          "postal_code": "97205",
+          "state": "OR"
+        },
+        "email": "jamie@example.com",
+        "name": "Jamie Rivera",
+        "phone": null,
+        "tax_exempt": "none",
+        "tax_ids": []
+      },
+      "customer_email": null,
+      "expires_at": 1763208060,
+      "livemode": false,
+      "metadata": { "orderId": "ORDER_ID", "orderNumber": "SL-0001" },
+      "mode": "payment",
+      "payment_intent": "pi_3QfixtureCompleted",
+      "payment_status": "paid",
+      "shipping_cost": {
+        "amount_subtotal": 600,
+        "amount_tax": 0,
+        "amount_total": 600,
+        "shipping_rate": "shr_1Qfixture"
+      },
+      "status": "complete",
+      "success_url": "http://localhost:3000/checkout/success?session_id={CHECKOUT_SESSION_ID}",
+      "total_details": { "amount_discount": 420, "amount_shipping": 600, "amount_tax": 0 },
+      "url": null
+    }
+  }
+}

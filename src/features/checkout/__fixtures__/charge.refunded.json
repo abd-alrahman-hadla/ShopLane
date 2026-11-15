@@ -1,0 +1,32 @@
+{
+  "id": "evt_3QfixtureRefunded00001",
+  "object": "event",
+  "api_version": "2026-10-28.endive",
+  "created": 1763294400,
+  "livemode": false,
+  "pending_webhooks": 1,
+  "request": { "id": "req_fixtureRefund", "idempotency_key": "f1x7ur3-refund" },
+  "type": "charge.refunded",
+  "data": {
+    "object": {
+      "id": "ch_3QfixtureRefunded",
+      "object": "charge",
+      "amount": 4380,
+      "amount_captured": 4380,
+      "amount_refunded": 4380,
+      "balance_transaction": "txn_3QfixtureRefunded",
+      "captured": true,
+      "created": 1763208000,
+      "currency": "usd",
+      "customer": null,
+      "livemode": false,
+      "metadata": { "orderId": "ORDER_ID" },
+      "paid": true,
+      "payment_intent": "pi_3QfixtureCompleted",
+      "payment_method": "pm_1QfixtureCard",
+      "refunded": true,
+      "status": "succeeded"
+    }
+  },
+  "previous_attributes": { "amount_refunded": 0, "refunded": false }
+}

@@ -145,6 +145,10 @@ async function main(): Promise<void> {
     console.log(
       `Seeded ${categories} categories, ${products} products, ${variants} variants, ${images} images.`,
     );
+    // The seed runs outside Next, so it can't call revalidateTag().
+    console.log(
+      "Note: a running `next dev`/`next start` may serve cached catalog data for up to an hour. Restart it to see seeded changes.",
+    );
   } finally {
     await db.$disconnect();
   }

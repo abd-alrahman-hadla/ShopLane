@@ -206,8 +206,8 @@ function OptionCheckboxes({
   );
 }
 
-export function FilterPanel({ filters, mode, categories, facets }: FilterPanelProps) {
-  const { navigate, isPending } = useCatalogNavigation(mode);
+export function FilterPanel({ filters: urlFilters, mode, categories, facets }: FilterPanelProps) {
+  const { filters, navigate, isPending } = useCatalogNavigation(mode, urlFilters);
   const inStockId = useId();
   const sizes = withSelected(facets.sizes, filters.sizes);
   const colors = withSelected(facets.colors, filters.colors);

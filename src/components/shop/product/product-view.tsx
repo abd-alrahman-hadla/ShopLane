@@ -4,6 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MAX_QUANTITY_PER_LINE } from "@/features/cart/cart";
+import { useCartDrawer, useCartStore } from "@/features/cart/store";
 import type { ProductDetail, VariantOption } from "@/features/catalog/types";
 import { imageIndexForVariant, resolveInitialVariant } from "@/features/catalog/variants";
 import { Price } from "../price";
@@ -42,12 +44,20 @@ export function ProductView({ product, initialSku }: ProductViewProps) {
   const [imageIndex, setImageIndex] = useState(() =>
     selected ? (imageIndexForVariant(product.images, selected.id) ?? 0) : 0,
   );
+  const addToCart = useCartStore((state) => state.add);
+  const openCart = useCartDrawer((state) => state.setOpen);
 
   function handleSelect(variant: VariantOption): void {
     setSelected(variant);
     const variantImage = imageIndexForVariant(product.images, variant.id);
     if (variantImage !== undefined) setImageIndex(variantImage);
     syncVariantToUrl(variant.sku);
+  }
+
+  function handleAddToCart(): void {
+    if (!selected || selected.stock <= 0) return;
+    addToCart(selected.id, 1, Math.min(selected.stock, MAX_QUANTITY_PER_LINE));
+    openCart(true);
   }
 
   return (
@@ -76,13 +86,15 @@ export function ProductView({ product, initialSku }: ProductViewProps) {
           <VariantPicker variants={product.variants} selected={selected} onSelect={handleSelect} />
         )}
         <div className="flex flex-col gap-2">
-          {/* Cart arrives in Phase 4; the button is wired up there. */}
-          <Button size="lg" className="h-11 w-full sm:w-72" disabled>
+          {/* Stock here may be slightly stale (static page); the cart re-checks on the server. */}
+          <Button
+            size="lg"
+            className="h-11 w-full sm:w-72"
+            disabled={!selected || selected.stock <= 0}
+            onClick={handleAddToCart}
+          >
             {selected && selected.stock > 0 ? "Add to cart" : "Sold out"}
           </Button>
-          {selected && selected.stock > 0 && (
-            <p className="text-muted-foreground text-xs">Online checkout is coming soon.</p>
-          )}
         </div>
         {selected && (
           <p className="text-muted-foreground text-xs" data-testid="selected-sku">
