@@ -23,6 +23,11 @@
 *.pem
 .idea/
 
+# local AI assistant notes and settings (never committed)
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
 # debug
 npm-debug.log*
 

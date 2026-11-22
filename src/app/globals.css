@@ -68,7 +68,7 @@
   --border: oklch(0.9 0.012 75);
   --input: oklch(0.9 0.012 75);
   --ring: oklch(0.55 0.06 55);
-  /* Data viz (validated with the dataviz skill: series-1 passes on white and #1a1a19) */
+  /* Data viz (series-1 checked for contrast and colour-blind safety on white and #1a1a19) */
   --viz-series-1: #2a78d6;
   --viz-grid: #e1e0d9;
   --viz-axis: #c3c2b7;

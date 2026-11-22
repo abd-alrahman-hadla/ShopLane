@@ -7,5 +7,4 @@ playwright-report
 test-results
 package-lock.json
 .idea
-CLAUDE.md
 src/components/ui

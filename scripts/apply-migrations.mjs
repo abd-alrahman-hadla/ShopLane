@@ -3,7 +3,7 @@
  * Applies pending Prisma migrations over Neon's WebSocket driver (port 443).
  *
  * Use this when `prisma migrate deploy` cannot reach Postgres on port 5432
- * (see CLAUDE.md). It records each migration in `_prisma_migrations` with the
+ * (e.g. a network that blocks it). It records each migration in `_prisma_migrations` with the
  * same sha256 checksum Prisma computes, so the two tools stay interchangeable.
  *
  * Usage:
