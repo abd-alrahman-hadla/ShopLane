@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { IntentLink } from "@/components/intent-link";
 import { useSession } from "next-auth/react";
-import { HeartIcon, UserIcon } from "lucide-react";
+import { HeartIcon, LayoutDashboardIcon, UserIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +30,18 @@ export function AccountMenu() {
 
   return (
     <div className="flex items-center">
+      {/* Convenience only: /admin re-checks the role on the server. */}
+      {session.user.role === "ADMIN" && (
+        <Link
+          href="/admin"
+          aria-label="Admin"
+          className={cn(buttonVariants({ variant: "ghost" }), "gap-1.5")}
+          data-testid="admin-link"
+        >
+          <LayoutDashboardIcon data-icon="inline-start" />
+          <span className="hidden sm:inline">Admin</span>
+        </Link>
+      )}
       <Link
         href="/account/wishlist"
         className={buttonVariants({ variant: "ghost", size: "icon" })}
