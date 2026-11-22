@@ -5,7 +5,7 @@ export type FieldChanges = Record<string, [unknown, unknown]>;
 
 export type AuditEntry = {
   action: string;
-  entityType: "Product" | "Order" | "Coupon" | "User";
+  entityType: "Product" | "Order" | "Coupon" | "User" | "Store";
   entityId: string;
   summary: string;
   changes?: FieldChanges | null;

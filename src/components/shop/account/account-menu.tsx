@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IntentLink } from "@/components/intent-link";
 import { useSession } from "next-auth/react";
 import { HeartIcon, UserIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -16,14 +17,14 @@ export function AccountMenu() {
 
   if (!session?.user) {
     return (
-      <Link
+      <IntentLink
         href="/sign-in"
         aria-label="Sign in"
         className={cn(buttonVariants({ variant: "ghost" }), "gap-1.5")}
       >
         <UserIcon data-icon="inline-start" />
         <span className="hidden sm:inline">Sign in</span>
-      </Link>
+      </IntentLink>
     );
   }
 

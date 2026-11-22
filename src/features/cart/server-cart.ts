@@ -16,12 +16,10 @@ export async function replaceServerCart(
   userId: string,
   items: readonly CartItem[],
 ): Promise<void> {
-  const cart = await db.cart.upsert({
-    where: { userId },
-    create: { userId },
-    update: {},
-    select: { id: true },
-  });
+  // INSERT … ON CONFLICT DO NOTHING, then read: unlike upsert, this can't fail
+  // when two requests (e.g. two tabs right after sign-in) create the cart at once.
+  await db.cart.createMany({ data: [{ userId }], skipDuplicates: true });
+  const cart = await db.cart.findUniqueOrThrow({ where: { userId }, select: { id: true } });
   await db.cartItem.deleteMany({ where: { cartId: cart.id } });
   if (items.length > 0) {
     await db.cartItem.createMany({

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { IntentLink } from "@/components/intent-link";
 import { notFound } from "next/navigation";
 import { ProductView } from "@/components/shop/product/product-view";
 import { ReviewsSection } from "@/components/shop/reviews/reviews-section";
@@ -55,9 +56,12 @@ export default async function ProductPage({ params }: PageProps) {
           </li>
           <li aria-hidden>/</li>
           <li>
-            <Link href={`/categories/${product.category.slug}`} className="hover:text-foreground">
+            <IntentLink
+              href={`/categories/${product.category.slug}`}
+              className="hover:text-foreground"
+            >
               {product.category.name}
-            </Link>
+            </IntentLink>
           </li>
           <li aria-hidden>/</li>
           <li aria-current="page" className="text-foreground">

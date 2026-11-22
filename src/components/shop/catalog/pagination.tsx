@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { IntentLink } from "@/components/intent-link";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -36,9 +36,14 @@ export function Pagination({ filters, mode, page, pageCount }: PaginationProps) 
   return (
     <nav aria-label="Pagination" className="flex items-center justify-center gap-1.5">
       {page > 1 ? (
-        <Link href={hrefFor(page - 1)} className={linkClass} aria-label="Previous page" rel="prev">
+        <IntentLink
+          href={hrefFor(page - 1)}
+          className={linkClass}
+          aria-label="Previous page"
+          rel="prev"
+        >
           <ChevronLeftIcon />
-        </Link>
+        </IntentLink>
       ) : (
         <span className={cn(linkClass, "pointer-events-none opacity-40")} aria-hidden>
           <ChevronLeftIcon />
@@ -50,7 +55,7 @@ export function Pagination({ filters, mode, page, pageCount }: PaginationProps) 
             …
           </span>
         ) : (
-          <Link
+          <IntentLink
             key={item}
             href={hrefFor(item)}
             aria-current={item === page ? "page" : undefined}
@@ -61,13 +66,18 @@ export function Pagination({ filters, mode, page, pageCount }: PaginationProps) 
             })}
           >
             {item}
-          </Link>
+          </IntentLink>
         ),
       )}
       {page < pageCount ? (
-        <Link href={hrefFor(page + 1)} className={linkClass} aria-label="Next page" rel="next">
+        <IntentLink
+          href={hrefFor(page + 1)}
+          className={linkClass}
+          aria-label="Next page"
+          rel="next"
+        >
           <ChevronRightIcon />
-        </Link>
+        </IntentLink>
       ) : (
         <span className={cn(linkClass, "pointer-events-none opacity-40")} aria-hidden>
           <ChevronRightIcon />

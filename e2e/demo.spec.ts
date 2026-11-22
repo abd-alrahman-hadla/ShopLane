@@ -25,3 +25,23 @@ test("Demo customer opens their order history, signed in", async ({ page }) => {
   // The header picks up the session after the full-page redirect.
   await expect(page.getByRole("link", { name: "Account" })).toBeVisible();
 });
+
+test("Admin header: reset dialog explains itself, and Sign out ends the session", async ({
+  page,
+}) => {
+  await page.goto("/sign-in");
+  await page.getByTestId("demo-sign-in").getByRole("button", { name: "Demo admin" }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+
+  // Open and cancel only: a real reset would archive products other specs create in parallel.
+  await page.getByRole("button", { name: "Reset demo data" }).click();
+  const dialog = page.getByRole("alertdialog", { name: "Reset the demo data?" });
+  await expect(dialog).toContainText("Orders stay");
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/sign-in\?callbackUrl=%2Fadmin/);
+});

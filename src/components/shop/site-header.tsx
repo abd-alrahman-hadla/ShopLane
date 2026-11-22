@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IntentLink } from "@/components/intent-link";
 import { CoffeeIcon } from "lucide-react";
 import type { CategorySummary } from "@/features/catalog/types";
 import { AccountMenu } from "./account/account-menu";
@@ -18,17 +19,17 @@ export function SiteHeader({ categories }: SiteHeaderProps) {
           ShopLane
         </Link>
         <nav aria-label="Categories" className="hidden flex-1 items-center gap-5 text-sm lg:flex">
-          <Link href="/products" className="text-muted-foreground hover:text-foreground">
+          <IntentLink href="/products" className="text-muted-foreground hover:text-foreground">
             Shop all
-          </Link>
+          </IntentLink>
           {categories.map((category) => (
-            <Link
+            <IntentLink
               key={category.id}
               href={`/categories/${category.slug}`}
               className="text-muted-foreground hover:text-foreground"
             >
               {category.name}
-            </Link>
+            </IntentLink>
           ))}
         </nav>
         <SearchBox className="ml-auto w-full max-w-56" />
@@ -40,18 +41,18 @@ export function SiteHeader({ categories }: SiteHeaderProps) {
       <nav aria-label="Categories" className="border-t lg:hidden">
         <ul className="mx-auto flex max-w-7xl gap-4 overflow-x-auto px-4 py-2 text-sm whitespace-nowrap sm:px-6">
           <li>
-            <Link href="/products" className="text-muted-foreground hover:text-foreground">
+            <IntentLink href="/products" className="text-muted-foreground hover:text-foreground">
               Shop all
-            </Link>
+            </IntentLink>
           </li>
           {categories.map((category) => (
             <li key={category.id}>
-              <Link
+              <IntentLink
                 href={`/categories/${category.slug}`}
                 className="text-muted-foreground hover:text-foreground"
               >
                 {category.name}
-              </Link>
+              </IntentLink>
             </li>
           ))}
         </ul>

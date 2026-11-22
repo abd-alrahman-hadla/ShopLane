@@ -3,7 +3,7 @@
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { signIn } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
 
 const signInSchema = z.object({
   email: z.email().max(254),
@@ -42,4 +42,9 @@ export async function requestMagicLink(
     throw error;
   }
   redirect("/sign-in/check-email");
+}
+
+/** Ends the session server-side (the database row is deleted), then goes to the store. */
+export async function signOutAction(): Promise<void> {
+  await signOut({ redirectTo: "/" });
 }

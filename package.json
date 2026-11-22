@@ -24,7 +24,7 @@
     "db:apply:test": "node scripts/apply-migrations.mjs --env-file .env.test --url-var TEST_DIRECT_URL",
     "admin:grant": "node scripts/grant-admin.mjs",
     "lighthouse": "node scripts/lighthouse.mjs",
-    "demo:reset": "tsx prisma/demo-reset.ts && prisma db seed",
+    "demo:reset": "tsx prisma/demo-reset.ts",
     "vercel-build": "prisma generate && prisma migrate deploy && next build",
     "screenshots": "playwright test --config playwright.screenshots.config.ts"
   },

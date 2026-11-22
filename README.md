@@ -13,7 +13,7 @@ Open **`/sign-in`** on the demo and use the **Try the demo** panel:
 | **Demo admin**    | `demo-admin@shoplane.dev` (role `ADMIN`)                         | `/admin`: dashboard, products, orders, refunds, coupons, audit log |
 | **Demo customer** | `demo1@example.com` (Jamie Rivera, with past orders and reviews) | `/account/orders`                                                  |
 
-There's no password or email step. Payments run in **Stripe test mode**: pay with `4242 4242 4242 4242`, any future expiry and any CVC. Demo data is reset every night.
+There's no password or email step. In the admin header, **Reset demo data** puts the catalog, stock and coupons back to the seeded state (also done nightly), and **Sign out** ends the session. Payments run in **Stripe test mode**: pay with `4242 4242 4242 4242`, any future expiry and any CVC. Demo data is reset every night.
 
 ## Screenshots
 

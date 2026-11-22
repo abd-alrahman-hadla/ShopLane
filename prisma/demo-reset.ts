@@ -1,15 +1,14 @@
 /**
- * Nightly reset for the public demo (run before `npm run db:seed`):
- *  - products created by demo visitors are archived (hidden, kept for order history),
- *  - coupons created by demo visitors are deactivated,
- *  - expired sessions are removed.
- * The seed that follows restores seeded products, stock, prices, images and coupons.
+ * Nightly reset for the public demo (GitHub Actions → demo-reset.yml).
+ * Same logic as the admin's "Reset demo data" button (src/features/demo/reset.ts),
+ * plus the SEED_ADMIN_EMAIL admin user when that is set.
  *
  * Refuses to run unless DEMO_MODE=true, so it can never touch a real store.
  */
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { seedCoupons, seedProducts } from "./seed-data";
+import { resetDemoData } from "../src/features/demo/reset";
+import { seedAdminUser } from "./seed-catalog";
 
 async function main(): Promise<void> {
   if (process.env.DEMO_MODE !== "true") {
@@ -20,22 +19,16 @@ async function main(): Promise<void> {
 
   const db = new PrismaClient({ adapter: new PrismaNeon({ connectionString }) });
   try {
-    const products = await db.product.updateMany({
-      where: {
-        slug: { notIn: seedProducts.map((product) => product.slug) },
-        status: { not: "ARCHIVED" },
-      },
-      data: { status: "ARCHIVED", featured: false },
-    });
-    const coupons = await db.coupon.updateMany({
-      where: { code: { notIn: seedCoupons.map((coupon) => coupon.code) }, isActive: true },
-      data: { isActive: false },
-    });
-    const sessions = await db.session.deleteMany({ where: { expires: { lt: new Date() } } });
+    const summary = await resetDemoData(db, { actor: { id: null, email: "system" } });
+    const adminEmail = process.env.SEED_ADMIN_EMAIL;
+    if (adminEmail) await seedAdminUser(db, adminEmail);
     console.log(
-      `Demo reset: archived ${products.count} visitor products, deactivated ${coupons.count} visitor coupons, ` +
-        `removed ${sessions.count} expired sessions. Now run the seed.`,
+      `Demo reset: archived ${summary.archivedProducts} visitor products, deactivated ` +
+        `${summary.deactivatedCoupons} visitor coupons, removed ${summary.removedSessions} expired ` +
+        `sessions; restored ${summary.restoredProducts} products, ${summary.restoredCoupons} coupons ` +
+        `and ${summary.reviews} reviews.`,
     );
+    console.log("Cached store pages refresh within the hour; redeploy to see them immediately.");
   } finally {
     await db.$disconnect();
   }

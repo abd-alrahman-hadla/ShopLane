@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+import { IntentLink } from "@/components/intent-link";
 import { ArrowRightIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { ProductGrid } from "@/components/shop/product-grid";
@@ -48,7 +48,7 @@ export default async function HomePage() {
             roastery.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link
+            <IntentLink
               href="/products"
               className={cn(
                 buttonVariants({ size: "lg" }),
@@ -56,8 +56,8 @@ export default async function HomePage() {
               )}
             >
               Shop all
-            </Link>
-            <Link
+            </IntentLink>
+            <IntentLink
               href="/categories/single-origin"
               className={cn(
                 buttonVariants({ variant: "outline", size: "lg" }),
@@ -65,7 +65,7 @@ export default async function HomePage() {
               )}
             >
               Single origins
-            </Link>
+            </IntentLink>
           </div>
         </div>
       </section>
@@ -75,12 +75,12 @@ export default async function HomePage() {
           <h2 id="featured-heading" className="text-2xl font-semibold tracking-tight">
             Featured
           </h2>
-          <Link
+          <IntentLink
             href="/products"
             className="flex items-center gap-1 text-sm underline-offset-4 hover:underline"
           >
             View all <ArrowRightIcon className="size-4" />
-          </Link>
+          </IntentLink>
         </div>
         <ProductGrid products={featured} className="md:grid-cols-4" />
       </section>
@@ -95,7 +95,7 @@ export default async function HomePage() {
         >
           {categories.map((category) => (
             <li key={category.id}>
-              <Link
+              <IntentLink
                 href={`/categories/${category.slug}`}
                 className="group bg-muted relative flex aspect-[4/5] items-end overflow-hidden rounded-xl"
               >
@@ -115,7 +115,7 @@ export default async function HomePage() {
                     {category.productCount} products
                   </span>
                 </div>
-              </Link>
+              </IntentLink>
             </li>
           ))}
         </ul>

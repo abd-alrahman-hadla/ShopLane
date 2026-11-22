@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { IntentLink } from "@/components/intent-link";
 import type { CategorySummary } from "@/features/catalog/types";
 
 type SiteFooterProps = {
@@ -18,13 +18,13 @@ export function SiteFooter({ categories }: SiteFooterProps) {
         <nav aria-label="Footer" className="flex flex-col gap-2">
           <span className="font-medium">Shop</span>
           {categories.map((category) => (
-            <Link
+            <IntentLink
               key={category.id}
               href={`/categories/${category.slug}`}
               className="text-muted-foreground hover:text-foreground"
             >
               {category.name}
-            </Link>
+            </IntentLink>
           ))}
         </nav>
         <p className="text-muted-foreground sm:text-right">

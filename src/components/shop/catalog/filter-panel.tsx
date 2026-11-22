@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { IntentLink } from "@/components/intent-link";
 import { useId, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -61,7 +62,7 @@ function CategoryLinks({ filters, mode, categories }: Omit<FilterPanelProps, "fa
     <nav aria-label="Filter by category">
       <ul className="flex flex-col gap-1.5 text-sm">
         <li>
-          <Link
+          <IntentLink
             href={hrefFor(undefined)}
             aria-current={!filters.category ? "page" : undefined}
             className={cn(
@@ -70,13 +71,13 @@ function CategoryLinks({ filters, mode, categories }: Omit<FilterPanelProps, "fa
             )}
           >
             All products
-          </Link>
+          </IntentLink>
         </li>
         {categories.map((category) => {
           const active = filters.category === category.slug;
           return (
             <li key={category.id}>
-              <Link
+              <IntentLink
                 href={hrefFor(category.slug)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
@@ -88,7 +89,7 @@ function CategoryLinks({ filters, mode, categories }: Omit<FilterPanelProps, "fa
                 <span className="text-muted-foreground ml-1 text-xs tabular-nums">
                   ({category.productCount})
                 </span>
-              </Link>
+              </IntentLink>
             </li>
           );
         })}

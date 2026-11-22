@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Audit log" };
 
-const ENTITY_TYPES = ["Product", "Order", "Coupon", "User"] as const;
+const ENTITY_TYPES = ["Product", "Order", "Coupon", "User", "Store"] as const;
 const timeFormat = new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "medium" });
 
 type PageProps = { searchParams: Promise<{ type?: string; page?: string }> };

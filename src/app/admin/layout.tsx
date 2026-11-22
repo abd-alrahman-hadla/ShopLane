@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CoffeeIcon, ExternalLinkIcon } from "lucide-react";
+import { CoffeeIcon, ExternalLinkIcon, LogOutIcon } from "lucide-react";
 import { AdminNav } from "@/components/admin/admin-nav";
+import { DemoResetButton } from "@/components/admin/demo-reset-button";
+import { Button } from "@/components/ui/button";
 import { requireAdminPage } from "@/features/admin/guard";
+import { signOutAction } from "@/features/auth/actions";
+import { isDemoMode } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: { default: "Admin", template: "%s · Admin · ShopLane" },
@@ -26,12 +30,28 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <span className="text-muted-foreground ml-auto hidden text-sm sm:inline">
             {admin.email}
           </span>
+          {isDemoMode() && <DemoResetButton />}
           <Link
             href="/"
             className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm"
           >
-            View store <ExternalLinkIcon className="size-3.5" aria-hidden />
+            <span className="hidden sm:inline">View store</span>
+            <span className="sm:hidden">Store</span>
+            <ExternalLinkIcon className="size-3.5" aria-hidden />
           </Link>
+          {/* A plain form: signs out server-side and works before JavaScript loads. */}
+          <form action={signOutAction}>
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              aria-label="Sign out"
+              data-testid="admin-sign-out"
+            >
+              <LogOutIcon data-icon="inline-start" />
+              <span className="hidden sm:inline">Sign out</span>
+            </Button>
+          </form>
         </div>
       </header>
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[12rem_1fr]">
