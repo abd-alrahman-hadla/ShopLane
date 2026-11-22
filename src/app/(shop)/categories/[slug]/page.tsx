@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { baseOpenGraph } from "@/features/seo/metadata";
 import { CatalogView } from "@/components/shop/catalog/catalog-view";
 import { parseCatalogParams, type SearchParamsRecord } from "@/features/catalog/filters";
 import {
@@ -22,7 +23,13 @@ export async function generateMetadata({ params }: Pick<PageProps, "params">): P
     title: category.name,
     description: category.description,
     alternates: { canonical: `/categories/${category.slug}` },
-    openGraph: category.imageUrl ? { images: [category.imageUrl] } : undefined,
+    openGraph: {
+      ...baseOpenGraph,
+      url: `/categories/${category.slug}`,
+      title: category.name,
+      description: category.description,
+      ...(category.imageUrl && { images: [{ url: category.imageUrl, alt: category.name }] }),
+    },
   };
 }
 

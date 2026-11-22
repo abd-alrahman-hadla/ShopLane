@@ -1,13 +1,22 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRightIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { ProductGrid } from "@/components/shop/product-grid";
 import { getCategories, getFeaturedProducts } from "@/features/catalog/queries";
+import { serializeJsonLd, siteJsonLd } from "@/features/seo/json-ld";
+import { env } from "@/lib/env";
 import { cn } from "@/lib/utils";
 
 // Static, purged by catalog tags on admin edits; hourly as a fallback.
 export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  // Absolute so the home page isn't "Something · ShopLane".
+  title: { absolute: "ShopLane: specialty coffee & brewing gear" },
+  alternates: { canonical: "/" },
+};
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=2000&q=80";
@@ -23,6 +32,8 @@ export default async function HomePage() {
           alt="Barista pouring from a gooseneck kettle into glass pour-over brewers"
           fill
           priority
+          fetchPriority="high"
+          quality={60}
           sizes="100vw"
           className="-z-10 object-cover"
         />
@@ -109,6 +120,10 @@ export default async function HomePage() {
           ))}
         </ul>
       </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(siteJsonLd(env.NEXT_PUBLIC_SITE_URL)) }}
+      />
     </>
   );
 }

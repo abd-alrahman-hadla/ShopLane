@@ -24,7 +24,9 @@ export function ImageGallery({ images, activeIndex, onSelect, productName }: Ima
             alt={active.alt}
             fill
             priority
-            sizes="(min-width: 1024px) 50vw, 100vw"
+            fetchPriority="high"
+            // The page is capped at max-w-7xl, so the gallery never exceeds ~600px.
+            sizes="(min-width: 1280px) 600px, (min-width: 1024px) 50vw, 100vw"
             className="object-cover"
             data-testid="gallery-main"
           />

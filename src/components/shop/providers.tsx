@@ -2,7 +2,7 @@
 
 import { SessionProvider } from "next-auth/react";
 import type { ReactNode } from "react";
-import { CartDrawer } from "./cart/cart-drawer";
+import { LazyCartDrawer } from "./cart/lazy-cart-drawer";
 import { CartSessionSync } from "./cart/cart-session-sync";
 import { WishlistSync } from "./wishlist/wishlist-sync";
 
@@ -14,7 +14,7 @@ export function ShopProviders({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
       {children}
-      <CartDrawer />
+      <LazyCartDrawer />
       <CartSessionSync />
       <WishlistSync />
     </SessionProvider>

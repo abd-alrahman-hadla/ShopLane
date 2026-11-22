@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { DemoSignIn } from "@/components/shop/account/demo-sign-in";
 import { SignInForm } from "@/components/shop/account/sign-in-form";
+import { isDemoMode } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -23,6 +25,7 @@ export default async function SignInPage({ searchParams }: PageProps) {
           That sign-in link is invalid or has expired. Request a new one.
         </p>
       )}
+      {isDemoMode() && <DemoSignIn />}
       <SignInForm callbackUrl={callbackUrl?.startsWith("/") ? callbackUrl : undefined} />
     </div>
   );

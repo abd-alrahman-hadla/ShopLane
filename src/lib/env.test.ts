@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 // env.ts validates the core environment on import, so provide it first.
 vi.stubEnv("DATABASE_URL", "postgresql://user:pass@localhost/test");
-const { parseEnv, parseServerEnv, stripeEnvSchema } = await import("./env");
+const { isDemoMode, parseEnv, parseServerEnv, stripeEnvSchema } = await import("./env");
 
 describe("parseServerEnv", () => {
   it("requires DATABASE_URL", () => {
@@ -57,5 +57,26 @@ describe("stripe env", () => {
         STRIPE_WEBHOOK_SECRET: "nope",
       }),
     ).toThrow(/STRIPE_WEBHOOK_SECRET/);
+  });
+});
+
+describe("demo mode", () => {
+  it("is off unless DEMO_MODE is true or 1", () => {
+    expect(isDemoMode({})).toBe(false);
+    expect(isDemoMode({ DEMO_MODE: "false" })).toBe(false);
+    expect(isDemoMode({ DEMO_MODE: "yes" })).toBe(false);
+    expect(isDemoMode({ DEMO_MODE: "true" })).toBe(true);
+    expect(isDemoMode({ DEMO_MODE: "1" })).toBe(true);
+  });
+
+  it("refuses a live Stripe key, even in production", () => {
+    expect(() =>
+      parseEnv(stripeEnvSchema, {
+        NODE_ENV: "production",
+        DEMO_MODE: "true",
+        STRIPE_SECRET_KEY: "sk_live_123",
+        STRIPE_WEBHOOK_SECRET: "whsec_1",
+      }),
+    ).toThrow(/DEMO_MODE requires a test-mode Stripe key/);
   });
 });

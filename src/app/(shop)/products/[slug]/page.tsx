@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
-import { ProductView, ProductViewFromUrl } from "@/components/shop/product/product-view";
+import { ProductView } from "@/components/shop/product/product-view";
 import { ReviewsSection } from "@/components/shop/reviews/reviews-section";
 import { getActiveProductSlugs, getProductBySlug } from "@/features/catalog/queries";
-import type { ProductDetail } from "@/features/catalog/types";
+import { baseOpenGraph } from "@/features/seo/metadata";
+import { breadcrumbJsonLd, productJsonLd, serializeJsonLd } from "@/features/seo/json-ld";
+import { env } from "@/lib/env";
 
 // SSG/ISR: prerendered at build, purged by `product:<slug>` / `products` tags
 // on admin edits, hourly as a fallback. New products render on first request.
@@ -23,12 +24,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) return {};
-  const image = product.images[0];
   return {
     title: product.seoTitle ?? product.name,
     description: product.seoDescription ?? product.description,
     alternates: { canonical: `/products/${product.slug}` },
-    openGraph: image ? { images: [{ url: image.url, alt: image.alt }] } : undefined,
+    // og:image comes from the colocated opengraph-image.tsx (photo + name + price card).
+    openGraph: {
+      ...baseOpenGraph,
+      url: `/products/${product.slug}`,
+      title: product.seoTitle ?? product.name,
+      description: product.seoDescription ?? product.description,
+    },
+    twitter: { card: "summary_large_image", title: product.seoTitle ?? product.name },
   };
 }
 
@@ -59,10 +66,8 @@ export default async function ProductPage({ params }: PageProps) {
         </ol>
       </nav>
 
-      {/* Static HTML uses the default variant; the URL's ?variant= applies on hydration. */}
-      <Suspense fallback={<ProductView product={product} />}>
-        <ProductViewFromUrl product={product} />
-      </Suspense>
+      {/* Static HTML uses the default variant; the URL's ?variant= applies after hydration. */}
+      <ProductView product={product} />
 
       <section className="mt-12 max-w-3xl border-t pt-8" aria-labelledby="about-heading">
         <h2 id="about-heading" className="mb-3 text-lg font-semibold">
@@ -77,39 +82,12 @@ export default async function ProductPage({ params }: PageProps) {
         type="application/ld+json"
         // Escaped so review/product text can never close the script tag.
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(productJsonLd(product)).replace(/</g, "\\u003c"),
+          __html: serializeJsonLd([
+            productJsonLd(product, env.NEXT_PUBLIC_SITE_URL),
+            breadcrumbJsonLd(product, env.NEXT_PUBLIC_SITE_URL),
+          ]),
         }}
       />
     </div>
   );
-}
-
-/** schema.org Product with offers and, when reviewed, aggregateRating. */
-function productJsonLd(product: ProductDetail) {
-  const prices = product.variants.map((variant) => variant.priceCents);
-  return {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    description: product.description,
-    image: product.images.map((image) => image.url),
-    sku: product.variants[0]?.sku,
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "USD",
-      lowPrice: (Math.min(...prices) / 100).toFixed(2),
-      highPrice: (Math.max(...prices) / 100).toFixed(2),
-      offerCount: product.variants.length,
-      availability: product.variants.some((variant) => variant.stock > 0)
-        ? "https://schema.org/InStock"
-        : "https://schema.org/OutOfStock",
-    },
-    ...(product.rating && {
-      aggregateRating: {
-        "@type": "AggregateRating",
-        ratingValue: product.rating.average,
-        reviewCount: product.rating.count,
-      },
-    }),
-  };
 }

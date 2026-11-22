@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { baseOpenGraph } from "@/features/seo/metadata";
 import { CatalogView } from "@/components/shop/catalog/catalog-view";
 import { parseCatalogParams, type SearchParamsRecord } from "@/features/catalog/filters";
 import { getCategories, getFacets, getProductList } from "@/features/catalog/queries";
@@ -7,6 +8,7 @@ export const metadata: Metadata = {
   title: "Shop all",
   description: "Every coffee and piece of brewing gear in the ShopLane store.",
   alternates: { canonical: "/products" },
+  openGraph: { ...baseOpenGraph, url: "/products", title: "Shop all · ShopLane" },
 };
 
 type PageProps = { searchParams: Promise<SearchParamsRecord> };

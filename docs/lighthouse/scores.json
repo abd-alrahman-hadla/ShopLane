@@ -1,0 +1,36 @@
+{
+  "local": {
+    "measuredAt": "2026-11-22",
+    "url": "next start (production build, local machine)",
+    "pages": {
+      "/": {
+        "mobile": {
+          "performance": 96,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100
+        },
+        "desktop": {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100
+        }
+      },
+      "/products/ethiopia-yirgacheffe-kochere": {
+        "mobile": {
+          "performance": 96,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100
+        },
+        "desktop": {
+          "performance": 100,
+          "accessibility": 100,
+          "best-practices": 100,
+          "seo": 100
+        }
+      }
+    }
+  }
+}

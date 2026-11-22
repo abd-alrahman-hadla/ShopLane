@@ -47,10 +47,20 @@ export function parseServerEnv(source: Record<string, string | undefined>): Serv
 
 export const env: ServerEnv = parseServerEnv(process.env);
 
-/** Live keys are only accepted in production builds. */
+/** "true"/"1" → true; anything else (or unset) → false. */
+const booleanFlag = z
+  .string()
+  .optional()
+  .transform((value) => value === "true" || value === "1");
+
+/**
+ * Live keys are only accepted in production builds, and never in demo mode:
+ * a public demo with one-click admin access must not be able to move real money.
+ */
 export const stripeEnvSchema = z
   .object({
     NODE_ENV: nodeEnvSchema,
+    DEMO_MODE: booleanFlag,
     STRIPE_SECRET_KEY: z.string().regex(/^sk_(test|live)_/, "must be a Stripe secret key"),
     STRIPE_WEBHOOK_SECRET: z.string().startsWith("whsec_"),
   })
@@ -60,7 +70,11 @@ export const stripeEnvSchema = z
       message: "Use a test-mode key (sk_test_…) outside production",
       path: ["STRIPE_SECRET_KEY"],
     },
-  );
+  )
+  .refine((value) => !value.DEMO_MODE || value.STRIPE_SECRET_KEY.startsWith("sk_test_"), {
+    message: "DEMO_MODE requires a test-mode Stripe key (sk_test_…)",
+    path: ["STRIPE_SECRET_KEY"],
+  });
 
 export const getStripeEnv = lazyEnv(stripeEnvSchema);
 
@@ -71,3 +85,10 @@ const emailEnvSchema = z.object({
 });
 
 export const getEmailEnv = lazyEnv(emailEnvSchema);
+
+/** Public demo: one-click demo admin/customer sign-in (see features/demo). Off unless DEMO_MODE=true. */
+export const demoEnvSchema = z.object({ DEMO_MODE: booleanFlag });
+
+export function isDemoMode(source: Record<string, string | undefined> = process.env): boolean {
+  return parseEnv(demoEnvSchema, source).DEMO_MODE;
+}

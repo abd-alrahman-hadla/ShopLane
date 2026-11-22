@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { siteMetadata } from "@/features/seo/metadata";
 import { env } from "@/lib/env";
 import "./globals.css";
 
@@ -15,12 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
-  title: {
-    default: "ShopLane: specialty coffee & brewing gear",
-    template: "%s · ShopLane",
-  },
-  description:
-    "Freshly roasted single-origin coffee, house blends and the brewing gear to make the most of them.",
+  ...siteMetadata,
 };
 
 export default function RootLayout({

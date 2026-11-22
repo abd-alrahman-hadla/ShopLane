@@ -157,3 +157,34 @@ export function getProductBySlug(slug: string): Promise<ProductDetail | null> {
     revalidate: REVALIDATE_SECONDS,
   })();
 }
+
+export type SitemapRecord = { path: string; updatedAt: string };
+
+/** Indexable catalog URLs: every category and every ACTIVE product (ISO dates, cache-safe). */
+export const getSitemapRecords = unstable_cache(
+  async (): Promise<SitemapRecord[]> => {
+    const [categories, products] = await Promise.all([
+      db.category.findMany({
+        select: { slug: true, updatedAt: true },
+        orderBy: { sortOrder: "asc" },
+      }),
+      db.product.findMany({
+        where: { status: "ACTIVE" },
+        select: { slug: true, updatedAt: true },
+        orderBy: { slug: "asc" },
+      }),
+    ]);
+    return [
+      ...categories.map((row) => ({
+        path: `/categories/${row.slug}`,
+        updatedAt: row.updatedAt.toISOString(),
+      })),
+      ...products.map((row) => ({
+        path: `/products/${row.slug}`,
+        updatedAt: row.updatedAt.toISOString(),
+      })),
+    ];
+  },
+  ["catalog:sitemap"],
+  { tags: [CATALOG_TAGS.categories, CATALOG_TAGS.products], revalidate: REVALIDATE_SECONDS },
+);

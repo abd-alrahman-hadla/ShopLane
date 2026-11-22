@@ -1,7 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MAX_QUANTITY_PER_LINE } from "@/features/cart/cart";
@@ -18,7 +17,6 @@ const LOW_STOCK_THRESHOLD = 5;
 
 type ProductViewProps = {
   product: ProductDetail;
-  initialSku?: string | null;
 };
 
 function StockStatus({ stock }: { stock: number }) {
@@ -36,12 +34,14 @@ function syncVariantToUrl(sku: string): void {
 }
 
 /**
- * Gallery + purchase panel. Rendered statically with the default variant and
- * hydrated with the variant from the URL (see ProductViewFromUrl).
+ * Gallery + purchase panel. Rendered statically with the default variant; the
+ * URL's ?variant= is applied after hydration. Reading it during render would
+ * need useSearchParams + Suspense, which swaps the static tree on hydration and
+ * repaints the gallery photo (the LCP element) after JS runs.
  */
-export function ProductView({ product, initialSku }: ProductViewProps) {
+export function ProductView({ product }: ProductViewProps) {
   const [selected, setSelected] = useState<VariantOption | undefined>(() =>
-    resolveInitialVariant(product.variants, initialSku),
+    resolveInitialVariant(product.variants, null),
   );
   const [imageIndex, setImageIndex] = useState(() =>
     selected ? (imageIndexForVariant(product.images, selected.id) ?? 0) : 0,
@@ -49,12 +49,24 @@ export function ProductView({ product, initialSku }: ProductViewProps) {
   const addToCart = useCartStore((state) => state.add);
   const openCart = useCartDrawer((state) => state.setOpen);
 
-  function handleSelect(variant: VariantOption): void {
+  function showVariant(variant: VariantOption): void {
     setSelected(variant);
     const variantImage = imageIndexForVariant(product.images, variant.id);
     if (variantImage !== undefined) setImageIndex(variantImage);
+  }
+
+  function handleSelect(variant: VariantOption): void {
+    showVariant(variant);
     syncVariantToUrl(variant.sku);
   }
+
+  // Once, after hydration: a shared link like ?variant=ETH-1KG preselects that variant.
+  useEffect(() => {
+    const sku = new URLSearchParams(window.location.search).get("variant");
+    const fromUrl = sku ? product.variants.find((variant) => variant.sku === sku) : undefined;
+    if (fromUrl) showVariant(fromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only; later changes come from clicks
+  }, []);
 
   function handleAddToCart(): void {
     if (!selected || selected.stock <= 0) return;
@@ -112,10 +124,4 @@ export function ProductView({ product, initialSku }: ProductViewProps) {
       </div>
     </div>
   );
-}
-
-/** Reads ?variant=. Must sit inside <Suspense> so the page can be prerendered. */
-export function ProductViewFromUrl({ product }: { product: ProductDetail }) {
-  const searchParams = useSearchParams();
-  return <ProductView product={product} initialSku={searchParams.get("variant")} />;
 }

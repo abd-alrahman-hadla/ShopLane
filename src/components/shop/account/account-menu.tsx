@@ -16,7 +16,11 @@ export function AccountMenu() {
 
   if (!session?.user) {
     return (
-      <Link href="/sign-in" className={cn(buttonVariants({ variant: "ghost" }), "gap-1.5")}>
+      <Link
+        href="/sign-in"
+        aria-label="Sign in"
+        className={cn(buttonVariants({ variant: "ghost" }), "gap-1.5")}
+      >
         <UserIcon data-icon="inline-start" />
         <span className="hidden sm:inline">Sign in</span>
       </Link>
@@ -32,7 +36,11 @@ export function AccountMenu() {
       >
         <HeartIcon />
       </Link>
-      <Link href="/account" className={cn(buttonVariants({ variant: "ghost" }), "gap-1.5")}>
+      <Link
+        href="/account"
+        aria-label="Account"
+        className={cn(buttonVariants({ variant: "ghost" }), "gap-1.5")}
+      >
         <UserIcon data-icon="inline-start" />
         <span className="hidden sm:inline">Account</span>
       </Link>

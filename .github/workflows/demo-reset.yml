@@ -1,0 +1,30 @@
+name: Demo reset
+
+# Nightly: restores the public demo's catalog, stock and coupons (see prisma/demo-reset.ts).
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Skipped until the demo database is configured (DEMO_DATABASE_URL secret + DEMO_RESET_ENABLED variable).
+    if: vars.DEMO_RESET_ENABLED == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Reset demo data
+        run: npm run demo:reset
+        env:
+          DEMO_MODE: "true"
+          DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+          SEED_ADMIN_EMAIL: ${{ vars.SEED_ADMIN_EMAIL }}

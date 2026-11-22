@@ -23,7 +23,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? "github" : "list",
+  // CI keeps an HTML report (with the axe JSON attachments) as a build artifact.
+  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   // Cold (uncached) listing renders make several round trips to Neon; from a
   // machine far from the database region that can take a few seconds.
   expect: { timeout: 15_000 },
@@ -36,7 +37,10 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: `npm run build && npx next start -p ${port}`,
+    // E2E_SKIP_BUILD=1 reuses an existing .next-e2e build (CI builds once, in its own step).
+    command: process.env.E2E_SKIP_BUILD
+      ? `npx next start -p ${port}`
+      : `npm run build && npx next start -p ${port}`,
     url: baseURL,
     // `next start` outside Vercel must be told to trust the host for Auth.js.
     env: { NEXT_DIST_DIR: ".next-e2e", NEXT_PUBLIC_SITE_URL: baseURL, AUTH_TRUST_HOST: "true" },

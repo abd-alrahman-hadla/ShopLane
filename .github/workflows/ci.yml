@@ -1,0 +1,163 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24
+
+jobs:
+  quality:
+    name: Lint, typecheck, unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Unit tests import lib/env.ts, which validates DATABASE_URL's shape (never connects).
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  e2e:
+    name: Integration, build, e2e (Stripe + axe), Lighthouse
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Needs the Neon API key secret and the NEON_PROJECT_ID repository variable (see docs/deploy.md).
+    if: vars.NEON_PROJECT_ID != ''
+    env:
+      NEXT_DIST_DIR: .next-e2e
+      NEXT_PUBLIC_SITE_URL: http://localhost:3100
+      AUTH_TRUST_HOST: "true"
+      E2E_SKIP_BUILD: "1"
+      # Exercises the one-click demo sign-in (e2e/demo.spec.ts); requires the test-mode Stripe key.
+      DEMO_MODE: "true"
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+      NEON_DATABASE: ${{ vars.NEON_DATABASE_NAME || 'shoplane' }}
+      NEON_ROLE: ${{ vars.NEON_ROLE_NAME || 'neondb_owner' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+
+      # Two throwaway Neon branches: integration tests truncate tables, e2e needs seeded data.
+      - name: Create Neon branch (integration)
+        id: neon-int
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-int
+          database: ${{ env.NEON_DATABASE }}
+          role: ${{ env.NEON_ROLE }}
+      - name: Create Neon branch (e2e)
+        id: neon-e2e
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch_name: ci-${{ github.run_id }}-${{ github.run_attempt }}-e2e
+          database: ${{ env.NEON_DATABASE }}
+          role: ${{ env.NEON_ROLE }}
+
+      - name: Apply migrations
+        run: |
+          DIRECT_URL="${{ steps.neon-int.outputs.db_url }}" npx prisma migrate deploy
+          DIRECT_URL="${{ steps.neon-e2e.outputs.db_url }}" npx prisma migrate deploy
+
+      - name: Integration tests
+        run: npm run test:integration
+        env:
+          TEST_DATABASE_URL: ${{ steps.neon-int.outputs.db_url_with_pooler }}
+
+      - name: Seed e2e database
+        run: npx prisma db seed
+        env:
+          DATABASE_URL: ${{ steps.neon-e2e.outputs.db_url_with_pooler }}
+          SEED_ADMIN_EMAIL: admin@example.com
+
+      - name: Generate per-run auth secret
+        run: echo "AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+
+      - name: Install Stripe CLI and forward webhooks
+        if: env.STRIPE_SECRET_KEY != ''
+        run: |
+          curl -fsSL https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public \
+            | gpg --dearmor | sudo tee /usr/share/keyrings/stripe.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" \
+            | sudo tee /etc/apt/sources.list.d/stripe.list > /dev/null
+          sudo apt-get update -qq && sudo apt-get install -y -qq stripe
+          secret="$(stripe listen --api-key "$STRIPE_SECRET_KEY" --print-secret)"
+          echo "::add-mask::$secret"
+          echo "STRIPE_WEBHOOK_SECRET=$secret" >> "$GITHUB_ENV"
+          nohup stripe listen --api-key "$STRIPE_SECRET_KEY" \
+            --events checkout.session.completed,checkout.session.expired,charge.refunded \
+            --forward-to localhost:3100/api/webhooks/stripe > stripe-listen.log 2>&1 &
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ steps.neon-e2e.outputs.db_url_with_pooler }}
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E (incl. Stripe test payment and axe)
+        run: npm run e2e
+        env:
+          DATABASE_URL: ${{ steps.neon-e2e.outputs.db_url_with_pooler }}
+
+      - name: Lighthouse (home + product, mobile + desktop, ≥ 95)
+        run: npm run lighthouse -- --no-save
+        env:
+          DATABASE_URL: ${{ steps.neon-e2e.outputs.db_url_with_pooler }}
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+            lighthouse-reports/
+            stripe-listen.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Delete Neon branches
+        if: always()
+        run: |
+          for suffix in int e2e; do
+            name="ci-${{ github.run_id }}-${{ github.run_attempt }}-$suffix"
+            id=$(curl -fsS -H "Authorization: Bearer $NEON_API_KEY" \
+              "https://console.neon.tech/api/v2/projects/${{ vars.NEON_PROJECT_ID }}/branches" \
+              | jq -r --arg n "$name" '.branches[] | select(.name == $n) | .id')
+            if [ -n "$id" ]; then
+              curl -fsS -X DELETE -H "Authorization: Bearer $NEON_API_KEY" \
+                "https://console.neon.tech/api/v2/projects/${{ vars.NEON_PROJECT_ID }}/branches/$id" > /dev/null
+              echo "Deleted $name"
+            fi
+          done
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
