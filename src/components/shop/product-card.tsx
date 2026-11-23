@@ -1,5 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import type { ProductCardData } from "@/features/catalog/types";
 import { Price } from "./price";
@@ -17,23 +18,26 @@ type ProductCardProps = {
  * wishlist heart can be a separate button (no button nested inside a link).
  */
 export function ProductCard({ product, priority = false }: ProductCardProps) {
+  const t = useTranslations("product");
+  const locale = useLocale();
   return (
     <div className="group relative flex flex-col gap-3" data-testid="product-card">
       <div className="bg-muted relative aspect-square overflow-hidden rounded-xl">
         {product.image ? (
           <Image
             src={product.image.url}
-            alt={product.image.alt}
+            // Stored alt text is English; other languages describe the photo by product name.
+            alt={locale === "en" ? product.image.alt : t("photoAlt", { name: product.name })}
             fill
             priority={priority}
             sizes="(min-width: 1280px) 22vw, (min-width: 768px) 30vw, 50vw"
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : null}
-        <div className="absolute top-2 left-2 flex gap-1.5">
-          {!product.inStock && <Badge variant="secondary">Sold out</Badge>}
+        <div className="absolute start-2 top-2 flex gap-1.5">
+          {!product.inStock && <Badge variant="secondary">{t("soldOut")}</Badge>}
           {product.inStock && product.compareAtCents !== null && (
-            <Badge className="bg-red-700 text-white">Sale</Badge>
+            <Badge className="bg-red-700 text-white">{t("sale")}</Badge>
           )}
         </div>
       </div>
@@ -60,7 +64,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       <WishlistButton
         productId={product.id}
         productName={product.name}
-        className="absolute top-2 right-2 z-10"
+        className="absolute end-2 top-2 z-10"
       />
     </div>
   );

@@ -2,12 +2,14 @@
 
 import { useCallback, useState } from "react";
 import { PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { AddressForm } from "./address-form";
 
 export function AddAddress({ disabled }: { disabled: boolean }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
+  const t = useTranslations("addresses");
 
   if (!open) {
     return (
@@ -18,7 +20,7 @@ export function AddAddress({ disabled }: { disabled: boolean }) {
         className="self-start"
       >
         <PlusIcon data-icon="inline-start" />
-        Add address
+        {t("add")}
       </Button>
     );
   }

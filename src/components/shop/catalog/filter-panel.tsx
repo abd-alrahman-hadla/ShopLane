@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { IntentLink } from "@/components/intent-link";
+import { useLocale, useTranslations } from "next-intl";
 import { useId, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,6 +19,8 @@ import {
   type CatalogMode,
 } from "@/features/catalog/filters";
 import type { CatalogFacets, CategorySummary } from "@/features/catalog/types";
+import { colorLabel, sizeLabel } from "@/features/catalog/variant-labels";
+import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 import { useCatalogNavigation } from "./use-catalog-navigation";
 
@@ -54,12 +57,13 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
 }
 
 function CategoryLinks({ filters, mode, categories }: Omit<FilterPanelProps, "facets">) {
+  const t = useTranslations("catalog");
   // Sizes and colors differ per category, so switching category drops them.
   const hrefFor = (category: string | undefined) =>
     buildCatalogHref(updateFilters(filters, { category, sizes: [], colors: [] }), mode);
 
   return (
-    <nav aria-label="Filter by category">
+    <nav aria-label={t("filterByCategory")}>
       <ul className="flex flex-col gap-1.5 text-sm">
         <li>
           <IntentLink
@@ -70,7 +74,7 @@ function CategoryLinks({ filters, mode, categories }: Omit<FilterPanelProps, "fa
               !filters.category && "text-foreground font-medium",
             )}
           >
-            All products
+            {t("allProducts")}
           </IntentLink>
         </li>
         {categories.map((category) => {
@@ -86,7 +90,7 @@ function CategoryLinks({ filters, mode, categories }: Omit<FilterPanelProps, "fa
                 )}
               >
                 {category.name}
-                <span className="text-muted-foreground ml-1 text-xs tabular-nums">
+                <span className="text-muted-foreground ms-1 text-xs tabular-nums">
                   ({category.productCount})
                 </span>
               </IntentLink>
@@ -108,6 +112,7 @@ function PriceForm({
   onApply: (min?: number, max?: number) => void;
 }) {
   const id = useId();
+  const t = useTranslations("catalog");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -129,7 +134,7 @@ function PriceForm({
     >
       <div className="flex flex-1 flex-col gap-1.5">
         <Label htmlFor={`${id}-min`} className="text-muted-foreground text-xs">
-          Min ($)
+          {t("minPrice")}
         </Label>
         <Input
           id={`${id}-min`}
@@ -143,7 +148,7 @@ function PriceForm({
       </div>
       <div className="flex flex-1 flex-col gap-1.5">
         <Label htmlFor={`${id}-max`} className="text-muted-foreground text-xs">
-          Max ($)
+          {t("maxPrice")}
         </Label>
         <Input
           id={`${id}-max`}
@@ -156,7 +161,7 @@ function PriceForm({
         />
       </div>
       <Button type="submit" variant="outline">
-        Apply
+        {t("apply")}
       </Button>
     </form>
   );
@@ -168,12 +173,15 @@ function OptionCheckboxes({
   selected,
   onToggle,
   swatches = false,
+  label,
 }: {
   name: string;
   options: string[];
   selected: string[];
   onToggle: (value: string) => void;
   swatches?: boolean;
+  /** Display text for a value; the URL keeps the stored (English) value. */
+  label: (value: string) => string;
 }) {
   const id = useId();
   return (
@@ -198,7 +206,7 @@ function OptionCheckboxes({
                   style={{ background: swatch }}
                 />
               )}
-              {option}
+              {label(option)}
             </Label>
           </li>
         );
@@ -209,6 +217,8 @@ function OptionCheckboxes({
 
 export function FilterPanel({ filters: urlFilters, mode, categories, facets }: FilterPanelProps) {
   const { filters, navigate, isPending } = useCatalogNavigation(mode, urlFilters);
+  const t = useTranslations("catalog");
+  const locale = useLocale() as Locale;
   const inStockId = useId();
   const sizes = withSelected(facets.sizes, filters.sizes);
   const colors = withSelected(facets.colors, filters.colors);
@@ -223,11 +233,11 @@ export function FilterPanel({ filters: urlFilters, mode, categories, facets }: F
       className={cn("flex flex-col gap-6 transition-opacity", isPending && "opacity-60")}
       aria-busy={isPending}
     >
-      <FilterSection title="Category">
+      <FilterSection title={t("category")}>
         <CategoryLinks filters={filters} mode={mode} categories={categories} />
       </FilterSection>
       <Separator />
-      <FilterSection title="Price">
+      <FilterSection title={t("price")}>
         <PriceForm
           filters={filters}
           facets={facets}
@@ -235,7 +245,7 @@ export function FilterPanel({ filters: urlFilters, mode, categories, facets }: F
         />
       </FilterSection>
       <Separator />
-      <FilterSection title="Availability">
+      <FilterSection title={t("availability")}>
         <div className="flex items-center gap-2.5">
           <Checkbox
             id={inStockId}
@@ -245,17 +255,18 @@ export function FilterPanel({ filters: urlFilters, mode, categories, facets }: F
             }
           />
           <Label htmlFor={inStockId} className="font-normal">
-            In stock only
+            {t("inStockOnly")}
           </Label>
         </div>
       </FilterSection>
       {sizes.length > 0 && (
         <>
           <Separator />
-          <FilterSection title="Size">
+          <FilterSection title={t("size")}>
             <OptionCheckboxes
               name="size"
               options={sizes}
+              label={(value) => sizeLabel(value, locale)}
               selected={filters.sizes}
               onToggle={(value) =>
                 navigate(updateFilters(filters, { sizes: toggleValue(filters.sizes, value) }))
@@ -267,10 +278,11 @@ export function FilterPanel({ filters: urlFilters, mode, categories, facets }: F
       {colors.length > 0 && (
         <>
           <Separator />
-          <FilterSection title="Color">
+          <FilterSection title={t("color")}>
             <OptionCheckboxes
               name="color"
               options={colors}
+              label={(value) => colorLabel(value, locale)}
               selected={filters.colors}
               swatches
               onToggle={(value) =>
@@ -284,7 +296,7 @@ export function FilterPanel({ filters: urlFilters, mode, categories, facets }: F
         <>
           <Separator />
           <Link href={clearHref} scroll={false} className="text-sm underline underline-offset-4">
-            Clear all filters ({activeCount})
+            {t("clearAll", { count: activeCount })}
           </Link>
         </>
       )}

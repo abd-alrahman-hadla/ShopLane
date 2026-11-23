@@ -1,4 +1,6 @@
-import { formatCents } from "@/lib/money";
+import { useLocale, useTranslations } from "next-intl";
+import type { Locale } from "@/i18n/routing";
+import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type PriceProps = {
@@ -10,17 +12,19 @@ type PriceProps = {
 };
 
 export function Price({ cents, compareAtCents, from = false, className }: PriceProps) {
+  const t = useTranslations("product");
+  const locale = useLocale() as Locale;
   const onSale = compareAtCents !== undefined && compareAtCents !== null && compareAtCents > cents;
   return (
     <span className={cn("inline-flex items-baseline gap-2 tabular-nums", className)}>
-      <span className={cn("font-medium", onSale && "text-red-700")} data-testid="price">
-        {from && <span className="text-muted-foreground font-normal">From </span>}
-        {formatCents(cents)}
+      <span className={cn("font-medium", onSale && "text-danger")} data-testid="price">
+        {from && <span className="text-muted-foreground font-normal">{t("from")} </span>}
+        {formatMoney(cents, locale)}
       </span>
       {onSale && (
         <span className="text-muted-foreground text-sm line-through">
-          <span className="sr-only">Was </span>
-          {formatCents(compareAtCents)}
+          <span className="sr-only">{t("was")} </span>
+          {formatMoney(compareAtCents, locale)}
         </span>
       )}
     </span>

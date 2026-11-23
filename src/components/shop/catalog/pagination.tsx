@@ -1,5 +1,6 @@
 import { IntentLink } from "@/components/intent-link";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { buttonVariants } from "@/components/ui/button";
 import {
   buildCatalogHref,
@@ -29,24 +30,25 @@ export function getPageItems(page: number, pageCount: number): Array<number | "g
 
 /** Real links, so every page is shareable and crawlable. */
 export function Pagination({ filters, mode, page, pageCount }: PaginationProps) {
+  const t = useTranslations("catalog");
   if (pageCount <= 1) return null;
   const hrefFor = (target: number) => buildCatalogHref({ ...filters, page: target }, mode);
   const linkClass = buttonVariants({ variant: "outline", size: "icon" });
 
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-center gap-1.5">
+    <nav aria-label={t("pagination")} className="flex items-center justify-center gap-1.5">
       {page > 1 ? (
         <IntentLink
           href={hrefFor(page - 1)}
           className={linkClass}
-          aria-label="Previous page"
+          aria-label={t("previousPage")}
           rel="prev"
         >
-          <ChevronLeftIcon />
+          <ChevronLeftIcon className="rtl:-scale-x-100" />
         </IntentLink>
       ) : (
         <span className={cn(linkClass, "pointer-events-none opacity-40")} aria-hidden>
-          <ChevronLeftIcon />
+          <ChevronLeftIcon className="rtl:-scale-x-100" />
         </span>
       )}
       {getPageItems(page, pageCount).map((item, index) =>
@@ -59,7 +61,7 @@ export function Pagination({ filters, mode, page, pageCount }: PaginationProps) 
             key={item}
             href={hrefFor(item)}
             aria-current={item === page ? "page" : undefined}
-            aria-label={`Page ${item}`}
+            aria-label={t("page", { page: item })}
             className={buttonVariants({
               variant: item === page ? "default" : "ghost",
               size: "icon",
@@ -73,14 +75,14 @@ export function Pagination({ filters, mode, page, pageCount }: PaginationProps) 
         <IntentLink
           href={hrefFor(page + 1)}
           className={linkClass}
-          aria-label="Next page"
+          aria-label={t("nextPage")}
           rel="next"
         >
-          <ChevronRightIcon />
+          <ChevronRightIcon className="rtl:-scale-x-100" />
         </IntentLink>
       ) : (
         <span className={cn(linkClass, "pointer-events-none opacity-40")} aria-hidden>
-          <ChevronRightIcon />
+          <ChevronRightIcon className="rtl:-scale-x-100" />
         </span>
       )}
     </nav>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useLocale, useTranslations } from "next-intl";
 import type { ProductImageData } from "@/features/catalog/types";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,12 @@ type ImageGalleryProps = {
 
 export function ImageGallery({ images, activeIndex, onSelect, productName }: ImageGalleryProps) {
   const active = images[activeIndex] ?? images[0];
+  const t = useTranslations("product");
+  // Stored alt text is English; other languages describe photos by product name.
+  const english = useLocale() === "en";
+  const altFor = (image: ProductImageData, index: number) =>
+    english ? image.alt : t("photoNumber", { name: productName, number: index + 1 });
+  const activePosition = active ? images.indexOf(active) : 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -21,7 +28,7 @@ export function ImageGallery({ images, activeIndex, onSelect, productName }: Ima
           <Image
             key={active.id}
             src={active.url}
-            alt={active.alt}
+            alt={altFor(active, activePosition)}
             fill
             priority
             fetchPriority="high"
@@ -32,18 +39,18 @@ export function ImageGallery({ images, activeIndex, onSelect, productName }: Ima
           />
         ) : (
           <span className="text-muted-foreground absolute inset-0 grid place-items-center text-sm">
-            No image
+            {t("noImage")}
           </span>
         )}
       </div>
       {images.length > 1 && (
-        <ul className="grid grid-cols-5 gap-2" aria-label={`${productName} images`}>
+        <ul className="grid grid-cols-5 gap-2" aria-label={t("images", { name: productName })}>
           {images.map((image, index) => (
             <li key={image.id}>
               <button
                 type="button"
                 onClick={() => onSelect(index)}
-                aria-label={`Show image ${index + 1}: ${image.alt}`}
+                aria-label={t("showImage", { number: index + 1, alt: altFor(image, index) })}
                 aria-pressed={index === activeIndex}
                 className={cn(
                   "bg-muted focus-visible:ring-ring/50 relative block aspect-square w-full overflow-hidden rounded-lg border-2 outline-none focus-visible:ring-3",

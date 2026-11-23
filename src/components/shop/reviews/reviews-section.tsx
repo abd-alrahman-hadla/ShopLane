@@ -1,12 +1,19 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import type { ProductDetail } from "@/features/catalog/types";
 import { getReviewOverview } from "@/features/reviews/queries";
+import type { Locale } from "@/i18n/routing";
+import { formatNumber } from "@/lib/format";
 import { ReviewForm } from "./review-form";
 import { ReviewList } from "./review-list";
 import { Stars } from "./stars";
 
 /** Server-rendered (static via ISR); purged with the product's cache tag on new reviews. */
 export async function ReviewsSection({ product }: { product: ProductDetail }) {
-  const overview = await getReviewOverview(product.id, product.slug);
+  const [overview, t, locale] = await Promise.all([
+    getReviewOverview(product.id, product.slug),
+    getTranslations("reviews"),
+    getLocale() as Promise<Locale>,
+  ]);
   const total = product.rating?.count ?? 0;
 
   return (
@@ -17,7 +24,7 @@ export async function ReviewsSection({ product }: { product: ProductDetail }) {
     >
       <div className="flex flex-col gap-4">
         <h2 id="reviews-heading" className="text-lg font-semibold">
-          Customer reviews
+          {t("heading")}
         </h2>
         {product.rating ? (
           <div className="flex flex-col gap-1" data-testid="review-summary">
@@ -27,18 +34,16 @@ export async function ReviewsSection({ product }: { product: ProductDetail }) {
                 {product.rating.average.toFixed(1)}
               </span>
             </div>
-            <p className="text-muted-foreground text-sm">
-              Based on {total} review{total === 1 ? "" : "s"}
-            </p>
+            <p className="text-muted-foreground text-sm">{t("basedOn", { count: total })}</p>
           </div>
         ) : (
-          <p className="text-muted-foreground text-sm">No reviews yet.</p>
+          <p className="text-muted-foreground text-sm">{t("none")}</p>
         )}
         {total > 0 && (
           <dl className="flex flex-col gap-1.5 text-sm">
             {overview.distribution.map(({ rating, count }) => (
               <div key={rating} className="flex items-center gap-2">
-                <dt className="w-12 tabular-nums">{rating} star</dt>
+                <dt className="w-14 tabular-nums">{t("starRow", { rating })}</dt>
                 <dd className="flex flex-1 items-center gap-2">
                   <span className="bg-muted h-2 flex-1 overflow-hidden rounded-full" aria-hidden>
                     <span
@@ -46,7 +51,9 @@ export async function ReviewsSection({ product }: { product: ProductDetail }) {
                       style={{ width: `${(count / total) * 100}%` }}
                     />
                   </span>
-                  <span className="text-muted-foreground w-6 text-right tabular-nums">{count}</span>
+                  <span className="text-muted-foreground w-6 text-end tabular-nums">
+                    {formatNumber(count, locale)}
+                  </span>
                 </dd>
               </div>
             ))}
@@ -62,7 +69,7 @@ export async function ReviewsSection({ product }: { product: ProductDetail }) {
             initialCursor={overview.nextCursor}
           />
         ) : (
-          <p className="text-muted-foreground text-sm">Be the first to review this product.</p>
+          <p className="text-muted-foreground text-sm">{t("beFirst")}</p>
         )}
       </div>
     </section>

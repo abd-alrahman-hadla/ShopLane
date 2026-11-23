@@ -4,7 +4,15 @@
  */
 import type { PrismaClient } from "../src/generated/prisma/client";
 import { syncProductPriceRange } from "../src/features/catalog/pricing";
-import { photoUrl, photos, seedCategories, seedCoupons, seedProducts } from "./seed-data";
+import {
+  arCategories,
+  arProducts,
+  photoUrl,
+  photos,
+  seedCategories,
+  seedCoupons,
+  seedProducts,
+} from "./seed-data";
 import type { SeedProduct } from "./seed-data";
 
 /** Each seed transaction makes many sequential queries; allow for a distant database. */
@@ -24,6 +32,14 @@ export async function seedCategoryRows(db: PrismaClient): Promise<Map<string, st
       create: { slug: category.slug, ...data },
       update: data,
     });
+    const arabic = arCategories[category.slug];
+    if (arabic) {
+      await db.categoryTranslation.upsert({
+        where: { categoryId_locale: { categoryId: row.id, locale: "ar" } },
+        create: { categoryId: row.id, locale: "ar", ...arabic },
+        update: arabic,
+      });
+    }
     ids.set(category.slug, row.id);
   }
   return ids;
@@ -51,6 +67,17 @@ export async function seedProduct(
       create: { slug: product.slug, ...data },
       update: data,
     });
+
+    // Arabic content (seeded products have no SEO overrides in either language).
+    const arabic = arProducts[product.slug];
+    if (arabic) {
+      const translation = { ...arabic, seoTitle: null, seoDescription: null };
+      await tx.productTranslation.upsert({
+        where: { productId_locale: { productId: row.id, locale: "ar" } },
+        create: { productId: row.id, locale: "ar", ...translation },
+        update: translation,
+      });
+    }
 
     const variantIds = new Map<string, string>();
     for (const [position, variant] of product.variants.entries()) {

@@ -1,4 +1,5 @@
 import { ShieldCheckIcon, UserIcon } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -6,6 +7,8 @@ import { Button } from "@/components/ui/button";
  * sets the session cookie and redirects, so the whole page reloads signed in.
  */
 export function DemoSignIn() {
+  const t = useTranslations("auth");
+  const locale = useLocale();
   return (
     <section
       aria-labelledby="demo-heading"
@@ -14,25 +17,25 @@ export function DemoSignIn() {
     >
       <div className="flex flex-col gap-1">
         <h2 id="demo-heading" className="text-sm font-semibold">
-          Try the demo
+          {t("demoTitle")}
         </h2>
-        <p className="text-muted-foreground text-sm">
-          No email needed. Payments run in Stripe test mode: use card 4242 4242 4242 4242.
-        </p>
+        <p className="text-muted-foreground text-sm">{t("demoHint")}</p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         <form action="/api/demo/session" method="post">
           <input type="hidden" name="role" value="admin" />
+          <input type="hidden" name="locale" value={locale} />
           <Button type="submit" className="w-full">
             <ShieldCheckIcon data-icon="inline-start" />
-            Demo admin
+            {t("demoAdmin")}
           </Button>
         </form>
         <form action="/api/demo/session" method="post">
           <input type="hidden" name="role" value="customer" />
+          <input type="hidden" name="locale" value={locale} />
           <Button type="submit" variant="outline" className="w-full">
             <UserIcon data-icon="inline-start" />
-            Demo customer
+            {t("demoCustomer")}
           </Button>
         </form>
       </div>

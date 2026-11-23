@@ -6,7 +6,14 @@ export type Carrier = (typeof CARRIERS)[number];
 export type StatusChange =
   { to: "FULFILLED" } | { to: "SHIPPED"; carrier: Carrier; trackingNumber: string };
 
-export type TransitionCheck = { ok: true } | { ok: false; reason: string };
+export type TransitionCheck =
+  | { ok: true }
+  | {
+      ok: false;
+      /** English explanation (logs, tests); the UI translates `code`. */
+      reason: string;
+      code: "cantPack" | "cantShip" | "trackingRequired";
+    };
 
 /**
  * Manual status changes an admin may make:
@@ -17,13 +24,25 @@ export function canTransition(from: OrderStatus, change: StatusChange): Transiti
   if (change.to === "FULFILLED") {
     return from === "PAID"
       ? { ok: true }
-      : { ok: false, reason: `A ${from.toLowerCase()} order can't be marked packed.` };
+      : {
+          ok: false,
+          reason: `A ${from.toLowerCase()} order can't be marked packed.`,
+          code: "cantPack",
+        };
   }
   if (!["PAID", "FULFILLED", "SHIPPED"].includes(from)) {
-    return { ok: false, reason: `A ${from.toLowerCase()} order can't be shipped.` };
+    return {
+      ok: false,
+      reason: `A ${from.toLowerCase()} order can't be shipped.`,
+      code: "cantShip",
+    };
   }
   if (!change.trackingNumber.trim())
-    return { ok: false, reason: "A tracking number is required to ship." };
+    return {
+      ok: false,
+      reason: "A tracking number is required to ship.",
+      code: "trackingRequired",
+    };
   return { ok: true };
 }
 

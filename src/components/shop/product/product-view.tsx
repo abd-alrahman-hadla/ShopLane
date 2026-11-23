@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,23 +8,23 @@ import { MAX_QUANTITY_PER_LINE } from "@/features/cart/cart";
 import { useCartDrawer, useCartStore } from "@/features/cart/store";
 import type { ProductDetail, VariantOption } from "@/features/catalog/types";
 import { imageIndexForVariant, resolveInitialVariant } from "@/features/catalog/variants";
+import { LOW_STOCK_THRESHOLD } from "@/lib/store";
 import { Price } from "../price";
 import { RatingSummary } from "../reviews/stars";
 import { WishlistButton } from "../wishlist/wishlist-button";
 import { ImageGallery } from "./image-gallery";
 import { VariantPicker } from "./variant-picker";
 
-const LOW_STOCK_THRESHOLD = 5;
-
 type ProductViewProps = {
   product: ProductDetail;
 };
 
 function StockStatus({ stock }: { stock: number }) {
-  if (stock <= 0) return <Badge variant="secondary">Sold out</Badge>;
+  const t = useTranslations("product");
+  if (stock <= 0) return <Badge variant="secondary">{t("soldOut")}</Badge>;
   if (stock <= LOW_STOCK_THRESHOLD)
-    return <span className="text-sm text-amber-700">Only {stock} left</span>;
-  return <span className="text-sm text-emerald-700">In stock</span>;
+    return <span className="text-warning text-sm">{t("onlyLeft", { count: stock })}</span>;
+  return <span className="text-success text-sm">{t("inStock")}</span>;
 }
 
 /** Writes ?variant=<sku> without a server round trip, so the page stays static. */
@@ -40,6 +41,7 @@ function syncVariantToUrl(sku: string): void {
  * repaints the gallery photo (the LCP element) after JS runs.
  */
 export function ProductView({ product }: ProductViewProps) {
+  const t = useTranslations("product");
   const [selected, setSelected] = useState<VariantOption | undefined>(() =>
     resolveInitialVariant(product.variants, null),
   );
@@ -112,13 +114,13 @@ export function ProductView({ product }: ProductViewProps) {
             disabled={!selected || selected.stock <= 0}
             onClick={handleAddToCart}
           >
-            {selected && selected.stock > 0 ? "Add to cart" : "Sold out"}
+            {selected && selected.stock > 0 ? t("addToCart") : t("soldOut")}
           </Button>
           <WishlistButton productId={product.id} productName={product.name} variant="labelled" />
         </div>
         {selected && (
           <p className="text-muted-foreground text-xs" data-testid="selected-sku">
-            SKU {selected.sku}
+            {t("sku")} <span dir="ltr">{selected.sku}</span>
           </p>
         )}
       </div>

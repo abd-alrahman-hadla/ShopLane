@@ -1,7 +1,10 @@
 "use server";
 
 import { AuthError } from "next-auth";
+import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
+import { getPathname } from "@/i18n/navigation";
+import type { Locale } from "@/i18n/routing";
 import { z } from "zod";
 import { signIn, signOut } from "@/lib/auth";
 
@@ -21,27 +24,28 @@ export async function requestMagicLink(
   _previous: SignInState,
   formData: FormData,
 ): Promise<SignInState> {
+  const [t, locale] = await Promise.all([getTranslations("auth"), getLocale()]);
   const parsed = signInSchema.safeParse({
     email: formData.get("email"),
     callbackUrl: formData.get("callbackUrl") || undefined,
   });
   if (!parsed.success) {
-    return { error: "Enter a valid email address." };
+    return { error: t("invalidEmail") };
   }
 
   try {
     await signIn("resend", {
       email: parsed.data.email,
-      redirectTo: parsed.data.callbackUrl ?? "/",
+      redirectTo: parsed.data.callbackUrl ?? (locale === "en" ? "/" : `/${locale}`),
     });
   } catch (error) {
     // signIn redirects to the "check your email" page by throwing NEXT_REDIRECT.
     if (error instanceof AuthError) {
-      return { error: "We couldn’t send the sign-in email. Please try again." };
+      return { error: t("sendFailed") };
     }
     throw error;
   }
-  redirect("/sign-in/check-email");
+  redirect(getPathname({ href: "/sign-in/check-email", locale: locale as Locale }));
 }
 
 /** Ends the session server-side (the database row is deleted), then goes to the store. */

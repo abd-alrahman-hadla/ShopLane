@@ -1,6 +1,7 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth, { type DefaultSession } from "next-auth";
 import Resend from "next-auth/providers/resend";
+import { emailI18n, localeOfSignInUrl } from "@/emails/i18n";
 import { SignInLinkEmail, signInLinkText } from "@/emails/sign-in-link";
 import type { Role } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
@@ -33,11 +34,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       from: getEmailEnv().EMAIL_FROM,
       // Delegate to our sender so dev without RESEND_API_KEY logs the link.
       async sendVerificationRequest({ identifier, url }) {
+        // The link's callback URL keeps the locale prefix of the page they signed in from.
+        const i18n = emailI18n(localeOfSignInUrl(url));
         await sendEmail({
           to: identifier,
-          subject: "Your ShopLane sign-in link",
-          react: SignInLinkEmail({ url }),
-          text: signInLinkText(url),
+          subject: i18n.t("signIn.subject"),
+          react: SignInLinkEmail({ url, i18n }),
+          text: signInLinkText(url, i18n),
         });
       },
     }),

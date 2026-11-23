@@ -28,6 +28,7 @@ describe("canTransition", () => {
     expect(canTransition("PAID", { ...ship, trackingNumber: "   " })).toEqual({
       ok: false,
       reason: "A tracking number is required to ship.",
+      code: "trackingRequired",
     });
   });
 });

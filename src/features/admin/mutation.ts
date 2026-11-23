@@ -1,3 +1,4 @@
+import { getLocale, getTranslations } from "next-intl/server";
 import type { z } from "zod";
 import type { DbClient } from "@/features/cart/quote";
 import type { SessionUser } from "@/lib/auth-guards";
@@ -19,7 +20,16 @@ export class AdminActionError extends Error {
   }
 }
 
-export type HandlerContext<I> = { tx: DbClient; admin: SessionUser; input: I; now: Date };
+/** Translates an `admin.errors` message in the admin's language. */
+export type AdminTranslate = (key: string, values?: Record<string, string | number>) => string;
+
+export type HandlerContext<I> = {
+  tx: DbClient;
+  admin: SessionUser;
+  input: I;
+  now: Date;
+  t: AdminTranslate;
+};
 
 export type HandlerOutput<T> = {
   result: T;
@@ -31,11 +41,23 @@ export type HandlerOutput<T> = {
 
 export const FORBIDDEN = "forbidden";
 
-function firstFieldErrors(error: z.ZodError): Record<string, string> {
+/**
+ * One message per field. The schemas' own messages are English; in other
+ * languages each field gets a translated message for its kind of problem.
+ */
+function firstFieldErrors(
+  error: z.ZodError,
+  locale: string,
+  t: AdminTranslate,
+): Record<string, string> {
   const result: Record<string, string> = {};
   for (const issue of error.issues) {
     const key = issue.path.join(".") || "_";
-    result[key] ??= issue.message;
+    if (result[key]) continue;
+    if (locale === "en") result[key] = issue.message;
+    else if (issue.code === "too_small") result[key] = t("field.tooSmall");
+    else if (issue.code === "too_big") result[key] = t("field.tooBig");
+    else result[key] = t("field.invalid");
   }
   return result;
 }
@@ -53,12 +75,14 @@ export function adminMutation<S extends z.ZodType, T>(
     const admin = await getAdminUser();
     if (!admin) return { ok: false, error: FORBIDDEN };
 
+    const [locale, translator] = await Promise.all([getLocale(), getTranslations("admin.errors")]);
+    const t = translator as unknown as AdminTranslate;
     const parsed = schema.safeParse(raw);
     if (!parsed.success) {
       return {
         ok: false,
-        error: "Please fix the highlighted fields.",
-        fieldErrors: firstFieldErrors(parsed.error),
+        error: t("fixFields"),
+        fieldErrors: firstFieldErrors(parsed.error, locale, t),
       };
     }
 
@@ -66,7 +90,7 @@ export function adminMutation<S extends z.ZodType, T>(
     try {
       output = await db.$transaction(
         async (tx) => {
-          const out = await handler({ tx, admin, input: parsed.data, now: new Date() });
+          const out = await handler({ tx, admin, input: parsed.data, now: new Date(), t });
           const entries = Array.isArray(out.audit) ? out.audit : [out.audit];
           if (entries.length === 0)
             throw new Error("Admin mutations must write at least one audit entry");
@@ -81,7 +105,7 @@ export function adminMutation<S extends z.ZodType, T>(
         return { ok: false, error: error.message, fieldErrors: error.fieldErrors };
       }
       console.error("[admin] mutation failed", error);
-      return { ok: false, error: "Something went wrong. Nothing was changed." };
+      return { ok: false, error: t("generic") };
     }
 
     if (output.afterCommit) {

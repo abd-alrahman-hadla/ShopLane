@@ -27,6 +27,8 @@ export type CreatePendingOrderInput = {
   couponCode?: string | null;
   userId?: string | null;
   email?: string | null;
+  /** Storefront language; emails about this order are sent in it. */
+  locale?: string;
   now: Date;
 };
 
@@ -114,6 +116,7 @@ export async function createPendingOrder(
       email: input.email ?? null,
       status: "PENDING",
       currency: "usd",
+      locale: input.locale ?? "en",
       ...totals,
       couponId: coupon?.id ?? null,
       couponCode: coupon?.code ?? null,

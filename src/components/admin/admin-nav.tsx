@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   HistoryIcon,
   LayoutDashboardIcon,
@@ -9,14 +7,16 @@ import {
   ReceiptIcon,
   TicketPercentIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/admin/products", label: "Products", icon: PackageIcon },
-  { href: "/admin/orders", label: "Orders", icon: ReceiptIcon },
-  { href: "/admin/coupons", label: "Coupons", icon: TicketPercentIcon },
-  { href: "/admin/audit", label: "Audit log", icon: HistoryIcon },
+  { href: "/admin", label: "dashboard", icon: LayoutDashboardIcon },
+  { href: "/admin/products", label: "products", icon: PackageIcon },
+  { href: "/admin/orders", label: "orders", icon: ReceiptIcon },
+  { href: "/admin/coupons", label: "coupons", icon: TicketPercentIcon },
+  { href: "/admin/audit", label: "audit", icon: HistoryIcon },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -28,8 +28,9 @@ function isActive(pathname: string, href: string): boolean {
 /** Vertical on desktop, a scrollable row on mobile. */
 export function AdminNav() {
   const pathname = usePathname();
+  const t = useTranslations("admin.nav");
   return (
-    <nav aria-label="Admin">
+    <nav aria-label={t("label")}>
       <ul className="flex gap-1 overflow-x-auto lg:flex-col">
         {LINKS.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
@@ -46,7 +47,7 @@ export function AdminNav() {
                 )}
               >
                 <Icon className="size-4" aria-hidden />
-                {label}
+                {t(label)}
               </Link>
             </li>
           );

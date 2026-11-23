@@ -1,6 +1,7 @@
 import type { DbClient } from "@/features/cart/quote";
 import { toProductCard } from "@/features/catalog/mappers";
 import { productCardSelect } from "@/features/catalog/queries";
+import type { Locale } from "@/i18n/routing";
 import type { ProductCardData } from "@/features/catalog/types";
 
 export const MAX_WISHLIST_ITEMS = 200;
@@ -50,11 +51,12 @@ export async function getWishlistProductIds(db: DbClient, userId: string): Promi
 export async function getWishlistProducts(
   db: DbClient,
   userId: string,
+  locale: Locale = "en",
 ): Promise<ProductCardData[]> {
   const items = await db.wishlistItem.findMany({
     where: { userId, product: { status: "ACTIVE" } },
     orderBy: { createdAt: "desc" },
-    select: { product: { select: productCardSelect } },
+    select: { product: { select: productCardSelect(locale) } },
   });
   return items.map((item) => toProductCard(item.product));
 }

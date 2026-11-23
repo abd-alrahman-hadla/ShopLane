@@ -21,6 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVerticalIcon, ImagePlusIcon, Trash2Icon, UploadIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   useFieldArray,
   useWatch,
@@ -73,6 +74,7 @@ function SortableImage({
   const url = useWatch({ control, name: `images.${index}.url` });
   const altError = errors.images?.[index]?.alt?.message;
   const altId = useId();
+  const t = useTranslations("admin.images");
 
   return (
     <li
@@ -85,8 +87,8 @@ function SortableImage({
         {isAllowedImageUrl(url) && (
           <Image src={url} alt="" fill sizes="160px" className="object-cover" />
         )}
-        <span className="bg-background/90 absolute top-1 left-1 rounded px-1.5 text-xs font-medium tabular-nums">
-          {index === 0 ? "Main" : index + 1}
+        <span className="bg-background/90 absolute start-1 top-1 rounded px-1.5 text-xs font-medium tabular-nums">
+          {index === 0 ? t("main") : index + 1}
         </span>
       </div>
       <div className="flex items-center gap-1">
@@ -95,7 +97,7 @@ function SortableImage({
           ref={setActivatorNodeRef}
           {...attributes}
           {...listeners}
-          aria-label={`Reorder image ${index + 1} of ${total}. Press space to pick up, arrow keys to move.`}
+          aria-label={t("reorder", { number: index + 1, total })}
           className="hover:bg-muted focus-visible:ring-ring/50 flex size-8 cursor-grab touch-none items-center justify-center rounded-md outline-none focus-visible:ring-3 active:cursor-grabbing"
         >
           <GripVerticalIcon className="size-4" aria-hidden />
@@ -105,27 +107,27 @@ function SortableImage({
           variant="ghost"
           size="icon-sm"
           onClick={onRemove}
-          aria-label={`Remove image ${index + 1}`}
+          aria-label={t("remove", { number: index + 1 })}
         >
           <Trash2Icon />
         </Button>
       </div>
       <label htmlFor={altId} className="sr-only">
-        Alt text for image {index + 1}
+        {t("altLabel", { number: index + 1 })}
       </label>
       <Input
         id={altId}
-        placeholder="Alt text (describe the photo)"
+        placeholder={t("altPlaceholder")}
         aria-invalid={altError ? true : undefined}
-        {...register(`images.${index}.alt`, { required: "Alt text is required." })}
+        {...register(`images.${index}.alt`, { required: t("altRequired") })}
       />
       {altError && <p className="text-destructive text-xs">{altError}</p>}
       <select
-        aria-label={`Variant shown in image ${index + 1}`}
+        aria-label={t("variantFor", { number: index + 1 })}
         className={selectClass}
         {...register(`images.${index}.variantSku`)}
       >
-        <option value="">All variants</option>
+        <option value="">{t("allVariants")}</option>
         {skus.map((sku) => (
           <option key={sku} value={sku}>
             {sku}
@@ -148,6 +150,7 @@ export function ImagesEditor({ control, register, errors }: ImagesEditorProps) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [urlDraft, setUrlDraft] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const t = useTranslations("admin.images");
 
   const { startUpload, isUploading } = useUploadThing("productImage", {
     onClientUploadComplete: (files) => {
@@ -159,11 +162,9 @@ export function ImagesEditor({ control, register, errors }: ImagesEditorProps) {
           variantSku: "",
         });
       }
-      setMessage(
-        `Uploaded ${files.length} image${files.length === 1 ? "" : "s"}. Add alt text, then save the product.`,
-      );
+      setMessage(t("uploaded", { count: files.length }));
     },
-    onUploadError: (error) => setMessage(`Upload failed: ${error.message}`),
+    onUploadError: (error) => setMessage(t("uploadFailed", { message: error.message })),
   });
 
   const sensors = useSensors(
@@ -174,17 +175,16 @@ export function ImagesEditor({ control, register, errors }: ImagesEditorProps) {
 
   const position = (id: string | number) => fields.findIndex((field) => field.key === id) + 1;
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `Picked up image ${position(active.id)}.`,
+    onDragStart: ({ active }) => t("dragStart", { number: position(active.id) }),
     onDragOver: ({ active, over }) =>
       over
-        ? `Image ${position(active.id)} is over position ${position(over.id)}.`
-        : `Image ${position(active.id)} is no longer over a position.`,
+        ? t("dragOver", { number: position(active.id), target: position(over.id) })
+        : t("dragOut", { number: position(active.id) }),
     onDragEnd: ({ active, over }) =>
       over
-        ? `Image moved to position ${position(over.id)}.`
-        : `Image ${position(active.id)} was dropped.`,
-    onDragCancel: ({ active }) =>
-      `Reordering cancelled. Image ${position(active.id)} stayed in place.`,
+        ? t("dragEnd", { target: position(over.id) })
+        : t("dropped", { number: position(active.id) }),
+    onDragCancel: ({ active }) => t("dragCancel", { number: position(active.id) }),
   };
 
   function handleDragEnd({ active, over }: DragEndEvent): void {
@@ -205,7 +205,7 @@ export function ImagesEditor({ control, register, errors }: ImagesEditorProps) {
   function addUrl(): void {
     const url = urlDraft.trim();
     if (!isAllowedImageUrl(url)) {
-      setMessage("Use an https://images.unsplash.com/… URL, or upload a file.");
+      setMessage(t("badUrl"));
       return;
     }
     append({ key: rowKey("img"), url, alt: "", variantSku: "" });
@@ -233,14 +233,15 @@ export function ImagesEditor({ control, register, errors }: ImagesEditorProps) {
           onClick={() => fileInput.current?.click()}
         >
           <UploadIcon data-icon="inline-start" />
-          {isUploading ? "Uploading…" : "Upload images"}
+          {isUploading ? t("uploading") : t("upload")}
         </Button>
         <div className="flex min-w-64 flex-1 gap-2">
           <Input
             value={urlDraft}
             onChange={(event) => setUrlDraft(event.target.value)}
-            placeholder="…or paste an image URL"
-            aria-label="Image URL"
+            placeholder={t("urlPlaceholder")}
+            aria-label={t("urlLabel")}
+            dir="ltr"
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
@@ -250,7 +251,7 @@ export function ImagesEditor({ control, register, errors }: ImagesEditorProps) {
           />
           <Button type="button" variant="outline" onClick={addUrl} disabled={full}>
             <ImagePlusIcon data-icon="inline-start" />
-            Add
+            {t("add")}
           </Button>
         </div>
       </div>
@@ -261,7 +262,7 @@ export function ImagesEditor({ control, register, errors }: ImagesEditorProps) {
       )}
       {fields.length === 0 ? (
         <p className="text-muted-foreground rounded-lg border border-dashed p-6 text-center text-sm">
-          No images yet.
+          {t("none")}
         </p>
       ) : (
         <DndContext
@@ -273,7 +274,7 @@ export function ImagesEditor({ control, register, errors }: ImagesEditorProps) {
           <SortableContext items={fields.map((field) => field.key)} strategy={rectSortingStrategy}>
             <ul
               className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
-              aria-label="Product images, in display order"
+              aria-label={t("listLabel")}
             >
               {fields.map((field, index) => (
                 <SortableImage

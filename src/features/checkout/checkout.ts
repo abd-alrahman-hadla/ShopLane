@@ -16,6 +16,8 @@ export type BeginCheckoutInput = {
   couponCode?: string | null;
   userId?: string | null;
   email?: string | null;
+  /** Storefront language: stored on the order and used for Stripe's return URLs. */
+  locale?: string;
 };
 
 export type BeginCheckoutResult =

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import {
   buildCatalogHref,
   DEFAULT_FILTERS,
@@ -22,11 +23,6 @@ type CatalogViewProps = {
   result: ProductListResult;
 };
 
-function resultSummary({ total, page, pageCount }: ProductListResult): string {
-  const noun = total === 1 ? "product" : "products";
-  return pageCount > 1 ? `${total} ${noun} · page ${page} of ${pageCount}` : `${total} ${noun}`;
-}
-
 export function CatalogView({
   title,
   description,
@@ -36,6 +32,7 @@ export function CatalogView({
   facets,
   result,
 }: CatalogViewProps) {
+  const t = useTranslations("catalog");
   const panelProps = { filters, mode, categories, facets };
   const resetHref = buildCatalogHref(
     { ...DEFAULT_FILTERS, q: filters.q, category: filters.category },
@@ -49,10 +46,10 @@ export function CatalogView({
         {description && <p className="text-muted-foreground max-w-2xl">{description}</p>}
       </header>
       <div className="grid gap-10 lg:grid-cols-[15rem_1fr]">
-        <aside className="hidden lg:block" aria-label="Filters">
+        <aside className="hidden lg:block" aria-label={t("filters")}>
           <FilterPanel {...panelProps} />
         </aside>
-        <section aria-label="Products" className="flex flex-col gap-8">
+        <section aria-label={t("products")} className="flex flex-col gap-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <MobileFilters {...panelProps} />
@@ -61,7 +58,13 @@ export function CatalogView({
                 data-testid="result-summary"
                 aria-live="polite"
               >
-                {resultSummary(result)}
+                {result.pageCount > 1
+                  ? t("summaryPaged", {
+                      count: result.total,
+                      page: result.page,
+                      pageCount: result.pageCount,
+                    })
+                  : t("summary", { count: result.total })}
               </p>
             </div>
             <SortSelect filters={filters} mode={mode} />
@@ -70,9 +73,9 @@ export function CatalogView({
             <ProductGrid products={result.items} priorityCount={3} />
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-16 text-center">
-              <p className="font-medium">No products match these filters.</p>
+              <p className="font-medium">{t("noMatches")}</p>
               <Link href={resetHref} className="text-sm underline underline-offset-4">
-                Clear filters
+                {t("clearFilters")}
               </Link>
             </div>
           )}

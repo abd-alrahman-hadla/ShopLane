@@ -19,12 +19,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return new NextResponse("Cross-origin request refused.", { status: 403 });
   }
 
-  const role = (await request.formData()).get("role");
+  const form = await request.formData();
+  const role = form.get("role");
+  const locale = String(form.get("locale") ?? "en");
   if (!isDemoRole(role)) return new NextResponse("Unknown demo account.", { status: 400 });
 
   const { sessionToken, expires } = await createDemoSession(role);
   const secure = new URL(request.url).protocol === "https:";
-  const response = NextResponse.redirect(new URL(demoLandingPath(role), request.url), 303);
+  const response = NextResponse.redirect(new URL(demoLandingPath(role, locale), request.url), 303);
   response.cookies.set(sessionCookieName(secure), sessionToken, {
     httpOnly: true,
     secure,

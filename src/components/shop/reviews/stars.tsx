@@ -1,4 +1,7 @@
 import { StarHalfIcon, StarIcon } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import type { Locale } from "@/i18n/routing";
+import { formatNumber } from "@/lib/format";
 import { starFill } from "@/features/reviews/rating";
 import { cn } from "@/lib/utils";
 
@@ -11,10 +14,13 @@ type StarsProps = {
 
 /** Read-only star display, rounded to the nearest half star. */
 export function Stars({ rating, className, size = "size-4" }: StarsProps) {
+  const t = useTranslations("reviews");
   return (
     <span
       role="img"
-      aria-label={`${rating} out of 5 stars`}
+      aria-label={t("starsLabel", { rating })}
+      // Stars fill left to right in every language.
+      dir="ltr"
       className={cn("inline-flex items-center gap-0.5 text-amber-500", className)}
     >
       {starFill(rating).map((fill, index) => (
@@ -38,6 +44,8 @@ export function RatingSummary({
   rating: { average: number; count: number } | null;
   className?: string;
 }) {
+  const t = useTranslations("reviews");
+  const locale = useLocale() as Locale;
   if (!rating) return null;
   return (
     <span
@@ -47,7 +55,9 @@ export function RatingSummary({
       <Stars rating={rating.average} size="size-3.5" />
       <span className="text-muted-foreground tabular-nums">
         {rating.average.toFixed(1)}{" "}
-        <span aria-label={`${rating.count} reviews`}>({rating.count})</span>
+        <span aria-label={t("reviewCount", { count: rating.count })}>
+          ({formatNumber(rating.count, locale)})
+        </span>
       </span>
     </span>
   );

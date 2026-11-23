@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +12,12 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
     saveProfile,
     {},
   );
+  const t = useTranslations("account");
 
   return (
     <form action={formAction} className="flex max-w-md flex-col gap-4">
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="profile-name">Name</Label>
+        <Label htmlFor="profile-name">{t("name")}</Label>
         <Input
           id="profile-name"
           name="name"
@@ -27,7 +29,7 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
           aria-describedby={state.error ? "profile-name-error" : "profile-name-hint"}
         />
         <p id="profile-name-hint" className="text-muted-foreground text-xs">
-          Shown on your reviews as first name and last initial.
+          {t("nameHint")}
         </p>
         {state.error && (
           <p id="profile-name-error" className="text-destructive text-sm">
@@ -36,19 +38,17 @@ export function ProfileForm({ name, email }: { name: string; email: string }) {
         )}
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="profile-email">Email</Label>
+        <Label htmlFor="profile-email">{t("email")}</Label>
         <Input id="profile-email" value={email} readOnly disabled />
-        <p className="text-muted-foreground text-xs">
-          You sign in with this address, so it can’t be changed here.
-        </p>
+        <p className="text-muted-foreground text-xs">{t("emailHint")}</p>
       </div>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : "Save"}
+          {isPending ? t("saving") : t("save")}
         </Button>
         {state.ok && (
-          <p className="text-sm text-emerald-700" role="status">
-            Saved.
+          <p className="text-success text-sm" role="status">
+            {t("saved")}
           </p>
         )}
       </div>

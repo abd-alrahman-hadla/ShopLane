@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -9,7 +10,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  SORT_LABELS,
   SORT_OPTIONS,
   updateFilters,
   type CatalogFilters,
@@ -30,6 +30,7 @@ export function SortSelect({
   mode: CatalogMode;
 }) {
   const { filters, navigate } = useCatalogNavigation(mode, urlFilters);
+  const t = useTranslations("catalog");
 
   return (
     <div className="flex items-center gap-2">
@@ -37,7 +38,7 @@ export function SortSelect({
         htmlFor="catalog-sort"
         className="text-muted-foreground hidden text-sm font-normal sm:block"
       >
-        Sort by
+        {t("sortBy")}
       </Label>
       <Select
         value={filters.sort}
@@ -45,13 +46,13 @@ export function SortSelect({
           if (isSort(value)) navigate(updateFilters(filters, { sort: value }));
         }}
       >
-        <SelectTrigger id="catalog-sort" aria-label="Sort products" className="w-48">
+        <SelectTrigger id="catalog-sort" aria-label={t("sortProducts")} className="w-48">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           {SORT_OPTIONS.map((option) => (
             <SelectItem key={option} value={option}>
-              {SORT_LABELS[option]}
+              {t(`sort.${option}`)}
             </SelectItem>
           ))}
         </SelectContent>

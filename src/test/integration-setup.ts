@@ -45,3 +45,6 @@ process.env.NEXT_PUBLIC_SITE_URL = "http://localhost:3000";
 process.env.STRIPE_SECRET_KEY = "sk_test_integration_fake";
 process.env.STRIPE_WEBHOOK_SECRET = "whsec_integration_test_secret";
 delete process.env.RESEND_API_KEY;
+
+// Server code reads the locale and messages from next-intl; outside a request, use English.
+await import("./intl");

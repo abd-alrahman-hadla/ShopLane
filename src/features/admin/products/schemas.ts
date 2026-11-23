@@ -90,6 +90,18 @@ export const imageInputSchema = z
   })
   .strict();
 
+/** Arabic name/description/SEO. All empty = no Arabic version (the store falls back to English). */
+export const arabicContentSchema = z
+  .object({
+    name: optionalText(120),
+    description: optionalText(5000),
+    seoTitle: optionalText(SEO_TITLE_MAX),
+    seoDescription: optionalText(SEO_DESCRIPTION_MAX),
+  })
+  .strict();
+
+export type ArabicContent = z.output<typeof arabicContentSchema>;
+
 export const productFormSchema = z
   .object({
     id: z.string().min(1).max(40).nullish(),
@@ -107,9 +119,19 @@ export const productFormSchema = z
     seoDescription: optionalText(SEO_DESCRIPTION_MAX),
     variants: z.array(variantInputSchema).min(1, "Add at least one variant.").max(MAX_VARIANTS),
     images: z.array(imageInputSchema).max(MAX_IMAGES),
+    /** Optional: omitted = leave the stored translations as they are. */
+    translations: z.object({ ar: arabicContentSchema }).strict().optional(),
   })
   .strict()
   .superRefine((product, ctx) => {
+    const ar = product.translations?.ar;
+    if (ar && !ar.name && (ar.description || ar.seoTitle || ar.seoDescription)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Add an Arabic name, or clear the other Arabic fields.",
+        path: ["translations", "ar", "name"],
+      });
+    }
     const seen = new Map<string, number>();
     product.variants.forEach((variant, index) => {
       const first = seen.get(variant.sku);

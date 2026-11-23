@@ -12,7 +12,13 @@ type ScopeFilters = Pick<CatalogFilters, "q" | "category">;
 function buildSearchCondition(q: string): Prisma.ProductWhereInput {
   const contains = { contains: q, mode: "insensitive" } as const;
   return {
-    OR: [{ name: contains }, { description: contains }, { variants: { some: { sku: contains } } }],
+    OR: [
+      { name: contains },
+      { description: contains },
+      { variants: { some: { sku: contains } } },
+      // Translated names and descriptions (e.g. searching in Arabic).
+      { translations: { some: { OR: [{ name: contains }, { description: contains }] } } },
+    ],
   };
 }
 

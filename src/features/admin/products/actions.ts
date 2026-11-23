@@ -7,11 +7,11 @@ import { saveProductTx } from "./save";
 import { productFormSchema, productIdSchema } from "./schemas";
 
 /** Create or update a product, its variants and images (one transaction, one audit row). */
-export const saveProduct = adminMutation(productFormSchema, async ({ tx, input }) => {
-  const { result, audit } = await saveProductTx(tx, input);
+export const saveProduct = adminMutation(productFormSchema, async ({ tx, input, t }) => {
+  const { result, audit } = await saveProductTx(tx, input, t);
   // Return the saved state (new variant IDs included) so the form can reset in place.
   const product = await loadEditableProduct(tx, result.id);
-  if (!product) throw new AdminActionError("The product could not be reloaded.");
+  if (!product) throw new AdminActionError(t("productReload"));
   return {
     result: { ...result, product },
     audit,
@@ -24,10 +24,10 @@ export const saveProduct = adminMutation(productFormSchema, async ({ tx, input }
 });
 
 /** Archive instead of delete: hidden from the store, kept for order history. */
-export const archiveProduct = adminMutation(productIdSchema, async ({ tx, input }) => {
+export const archiveProduct = adminMutation(productIdSchema, async ({ tx, input, t }) => {
   const product = await tx.product.findUnique({ where: { id: input.productId } });
-  if (!product) throw new AdminActionError("Product not found.");
-  if (product.status === "ARCHIVED") throw new AdminActionError("Already archived.");
+  if (!product) throw new AdminActionError(t("productNotFound"));
+  if (product.status === "ARCHIVED") throw new AdminActionError(t("alreadyArchived"));
   await tx.product.update({
     where: { id: product.id },
     data: { status: "ARCHIVED", featured: false },
@@ -49,11 +49,10 @@ export const archiveProduct = adminMutation(productIdSchema, async ({ tx, input 
 });
 
 /** Restores an archived product as a draft, so it can be reviewed before going live. */
-export const restoreProduct = adminMutation(productIdSchema, async ({ tx, input }) => {
+export const restoreProduct = adminMutation(productIdSchema, async ({ tx, input, t }) => {
   const product = await tx.product.findUnique({ where: { id: input.productId } });
-  if (!product) throw new AdminActionError("Product not found.");
-  if (product.status !== "ARCHIVED")
-    throw new AdminActionError("Only archived products can be restored.");
+  if (!product) throw new AdminActionError(t("productNotFound"));
+  if (product.status !== "ARCHIVED") throw new AdminActionError(t("onlyArchived"));
   await tx.product.update({ where: { id: product.id }, data: { status: "DRAFT" } });
   return {
     result: { status: "DRAFT" as const },

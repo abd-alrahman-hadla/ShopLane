@@ -12,6 +12,8 @@ describe("demo helpers", () => {
   it("sends the admin to the dashboard and the customer to their orders", () => {
     expect(demoLandingPath("admin")).toBe("/admin");
     expect(demoLandingPath("customer")).toBe("/account/orders");
+    expect(demoLandingPath("admin", "ar")).toBe("/ar/admin");
+    expect(demoLandingPath("customer", "fr")).toBe("/account/orders");
   });
 
   it("uses the Auth.js cookie name for the protocol", () => {

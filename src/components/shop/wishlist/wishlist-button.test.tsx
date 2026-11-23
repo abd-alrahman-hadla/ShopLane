@@ -7,7 +7,7 @@ const push = vi.fn();
 const useSession = vi.fn();
 const setWishlistedAction = vi.fn();
 
-vi.mock("next/navigation", () => ({
+vi.mock("@/i18n/navigation", () => ({
   useRouter: () => ({ push }),
   usePathname: () => "/products/stoneware-mug",
 }));

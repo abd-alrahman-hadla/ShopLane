@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import {
   Area,
   AreaChart,
@@ -10,34 +11,37 @@ import {
   YAxis,
 } from "recharts";
 import type { DailyRevenue } from "@/features/admin/metrics";
-import { formatCents } from "@/lib/money";
-
-const dayLabel = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC",
-});
-const fullDayLabel = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-  timeZone: "UTC",
-});
-const compactDollars = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+import type { Locale } from "@/i18n/routing";
+import { formatCurrency, formatMoney, intlLocale } from "@/lib/format";
 
 /** Day keys are calendar dates; format them at UTC midnight so no zone shifts the day. */
 function parseDay(key: string): Date {
   return new Date(`${key}T00:00:00Z`);
 }
 
+function useFormatters() {
+  const locale = useLocale() as Locale;
+  const tag = intlLocale(locale);
+  return {
+    locale,
+    day: new Intl.DateTimeFormat(tag, { month: "short", day: "numeric", timeZone: "UTC" }),
+    fullDay: new Intl.DateTimeFormat(tag, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }),
+    compactDollars: (dollars: number) =>
+      formatCurrency(dollars, locale, "usd", { notation: "compact", maximumFractionDigits: 1 }),
+    money: (cents: number) => formatMoney(cents, locale),
+  };
+}
+
 type ChartTooltipProps = { active?: boolean; payload?: ReadonlyArray<{ payload?: unknown }> };
 
 function ChartTooltip({ active, payload }: ChartTooltipProps) {
+  const t = useTranslations("admin.dashboard");
+  const format = useFormatters();
   const point = payload?.[0]?.payload as DailyRevenue | undefined;
   if (!active || !point) return null;
   return (
@@ -49,11 +53,10 @@ function ChartTooltip({ active, payload }: ChartTooltipProps) {
           className="h-0.5 w-3 rounded-full"
           style={{ background: "var(--viz-series-1)" }}
         />
-        <span className="font-semibold tabular-nums">{formatCents(point.revenueCents)}</span>
+        <span className="font-semibold tabular-nums">{format.money(point.revenueCents)}</span>
       </div>
       <div className="text-muted-foreground text-xs">
-        {fullDayLabel.format(parseDay(point.date))} · {point.orders} order
-        {point.orders === 1 ? "" : "s"}
+        {format.fullDay.format(parseDay(point.date))} · {t("orderCount", { count: point.orders })}
       </div>
     </div>
   );
@@ -62,22 +65,26 @@ function ChartTooltip({ active, payload }: ChartTooltipProps) {
 /**
  * Net revenue per day, last 30 days. Single series: no legend (the heading
  * names it), crosshair tooltip on hover, and a data table for non-hover access.
+ * Time runs left to right in every language, so the plot itself stays LTR.
  */
 export function RevenueChart({ data }: { data: DailyRevenue[] }) {
+  const t = useTranslations("admin.dashboard");
+  const format = useFormatters();
   const total = data.reduce((sum, day) => sum + day.revenueCents, 0);
   return (
     <div className="flex flex-col gap-3">
       <div
         className="h-64 w-full"
+        dir="ltr"
         role="img"
-        aria-label={`Daily revenue for the last ${data.length} days, ${formatCents(total)} in total. A data table follows.`}
+        aria-label={t("chartLabel", { days: data.length, total: format.money(total) })}
       >
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} stroke="var(--viz-grid)" strokeWidth={1} />
             <XAxis
               dataKey="date"
-              tickFormatter={(key: string) => dayLabel.format(parseDay(key))}
+              tickFormatter={(key: string) => format.day.format(parseDay(key))}
               tick={{ fill: "var(--viz-muted)", fontSize: 12 }}
               tickLine={false}
               axisLine={{ stroke: "var(--viz-axis)" }}
@@ -85,11 +92,11 @@ export function RevenueChart({ data }: { data: DailyRevenue[] }) {
               minTickGap={32}
             />
             <YAxis
-              tickFormatter={(cents: number) => compactDollars.format(cents / 100)}
+              tickFormatter={(cents: number) => format.compactDollars(cents / 100)}
               tick={{ fill: "var(--viz-muted)", fontSize: 12 }}
               tickLine={false}
               axisLine={false}
-              width={56}
+              width={64}
               allowDecimals={false}
             />
             <Tooltip
@@ -99,7 +106,7 @@ export function RevenueChart({ data }: { data: DailyRevenue[] }) {
             <Area
               type="monotone"
               dataKey="revenueCents"
-              name="Revenue"
+              name={t("revenue")}
               stroke="var(--viz-series-1)"
               strokeWidth={2}
               strokeLinejoin="round"
@@ -119,28 +126,28 @@ export function RevenueChart({ data }: { data: DailyRevenue[] }) {
       </div>
       <details className="text-sm">
         <summary className="text-muted-foreground hover:text-foreground cursor-pointer">
-          Show data table
+          {t("showTable")}
         </summary>
-        <table className="mt-2 w-full text-left tabular-nums">
+        <table className="mt-2 w-full text-start tabular-nums">
           <thead className="text-muted-foreground">
             <tr>
               <th scope="col" className="py-1 font-normal">
-                Day
+                {t("day")}
               </th>
-              <th scope="col" className="py-1 text-right font-normal">
-                Orders
+              <th scope="col" className="py-1 text-end font-normal">
+                {t("orders")}
               </th>
-              <th scope="col" className="py-1 text-right font-normal">
-                Net revenue
+              <th scope="col" className="py-1 text-end font-normal">
+                {t("netRevenue")}
               </th>
             </tr>
           </thead>
           <tbody>
             {data.map((day) => (
               <tr key={day.date} className="border-t">
-                <td className="py-1">{fullDayLabel.format(parseDay(day.date))}</td>
-                <td className="py-1 text-right">{day.orders}</td>
-                <td className="py-1 text-right">{formatCents(day.revenueCents)}</td>
+                <td className="py-1">{format.fullDay.format(parseDay(day.date))}</td>
+                <td className="py-1 text-end">{day.orders}</td>
+                <td className="py-1 text-end">{format.money(day.revenueCents)}</td>
               </tr>
             ))}
           </tbody>

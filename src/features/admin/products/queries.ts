@@ -1,6 +1,8 @@
 import { z } from "zod";
 import type { Prisma } from "@/generated/prisma/client";
 import type { DbClient } from "@/features/cart/quote";
+import { translationsFor } from "@/features/catalog/localize";
+import type { Locale } from "@/i18n/routing";
 import { LOW_STOCK_THRESHOLD } from "@/lib/store";
 
 export const ADMIN_PRODUCTS_PAGE_SIZE = 25;
@@ -51,7 +53,13 @@ export function adminProductWhere(filters: AdminProductFilters): Prisma.ProductW
   if (filters.q) {
     const contains = { contains: filters.q, mode: "insensitive" } as const;
     and.push({
-      OR: [{ name: contains }, { slug: contains }, { variants: { some: { sku: contains } } }],
+      OR: [
+        { name: contains },
+        { slug: contains },
+        { variants: { some: { sku: contains } } },
+        // Translated names too, so the Arabic admin can search in Arabic.
+        { translations: { some: { name: contains } } },
+      ],
     });
   }
   if (filters.stock === "out") and.push({ variants: { every: { stock: 0 } } });
@@ -60,7 +68,16 @@ export function adminProductWhere(filters: AdminProductFilters): Prisma.ProductW
   return { AND: and };
 }
 
-export async function listAdminProducts(db: DbClient, filters: AdminProductFilters) {
+/** Name in the admin's language; English when there's no translation. */
+function localizedName(row: { name: string; translations?: Array<{ name: string }> }): string {
+  return row.translations?.[0]?.name || row.name;
+}
+
+export async function listAdminProducts(
+  db: DbClient,
+  filters: AdminProductFilters,
+  locale: Locale = "en",
+) {
   const where = adminProductWhere(filters);
   const total = await db.product.count({ where });
   const pageCount = Math.max(1, Math.ceil(total / ADMIN_PRODUCTS_PAGE_SIZE));
@@ -79,13 +96,16 @@ export async function listAdminProducts(db: DbClient, filters: AdminProductFilte
       minPriceCents: true,
       maxPriceCents: true,
       updatedAt: true,
-      category: { select: { name: true } },
+      category: { select: { name: true, translations: translationsFor(locale, { name: true }) } },
       images: { select: { url: true, alt: true }, orderBy: { position: "asc" }, take: 1 },
       variants: { select: { stock: true } },
+      translations: translationsFor(locale, { name: true }),
     },
   });
-  const products = rows.map(({ variants, images, ...product }) => ({
+  const products = rows.map(({ variants, images, translations, category, ...product }) => ({
     ...product,
+    name: localizedName({ name: product.name, translations }),
+    category: { name: localizedName(category) },
     image: images[0] ?? null,
     totalStock: variants.reduce((sum, variant) => sum + variant.stock, 0),
     variantCount: variants.length,
@@ -106,10 +126,15 @@ export async function getAdminProduct(db: DbClient, id: string) {
         include: { _count: { select: { orderItems: true } } },
       },
       images: { orderBy: { position: "asc" }, include: { variant: { select: { sku: true } } } },
+      translations: { where: { locale: "ar" }, take: 1 },
     },
   });
 }
 
-export async function listCategoryOptions(db: DbClient) {
-  return db.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } });
+export async function listCategoryOptions(db: DbClient, locale: Locale = "en") {
+  const rows = await db.category.findMany({
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, name: true, translations: translationsFor(locale, { name: true }) },
+  });
+  return rows.map((row) => ({ id: row.id, name: localizedName(row) }));
 }

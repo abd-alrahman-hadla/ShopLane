@@ -1,32 +1,38 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { MinusIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { MAX_QUANTITY_PER_LINE } from "@/features/cart/cart";
 import type { CartQuoteLine } from "@/features/cart/quote";
 import { useCartStore } from "@/features/cart/store";
-import { formatCents } from "@/lib/money";
+import { variantLabel } from "@/features/catalog/variant-labels";
+import type { Locale } from "@/i18n/routing";
+import { formatMoney } from "@/lib/format";
 
 export function CartLine({ line }: { line: CartQuoteLine }) {
   const setQuantity = useCartStore((state) => state.setQuantity);
   const remove = useCartStore((state) => state.remove);
+  const t = useTranslations("cart");
+  const locale = useLocale() as Locale;
   const { variant } = line;
 
   if (!variant) {
     return (
       <li className="flex items-center justify-between gap-3 py-4" data-testid="cart-line">
-        <p className="text-muted-foreground text-sm">This item is no longer available.</p>
+        <p className="text-muted-foreground text-sm">{t("unavailable")}</p>
         <Button variant="ghost" size="sm" onClick={() => remove(line.variantId)}>
-          Remove
+          {t("remove")}
         </Button>
       </li>
     );
   }
 
   const max = Math.min(variant.stock, MAX_QUANTITY_PER_LINE);
-  const name = `${variant.product.name}, ${variant.title}`;
+  const title = variantLabel(variant.title, locale);
+  const name = `${variant.product.name}, ${title}`;
 
   return (
     <li className="flex gap-3 py-4" data-testid="cart-line">
@@ -53,22 +59,22 @@ export function CartLine({ line }: { line: CartQuoteLine }) {
             >
               {variant.product.name}
             </Link>
-            <p className="text-muted-foreground text-xs">{variant.title}</p>
+            <p className="text-muted-foreground text-xs">{title}</p>
           </div>
           <p className="text-sm font-medium tabular-nums" data-testid="cart-line-total">
-            {formatCents(variant.priceCents * line.quantity)}
+            {formatMoney(variant.priceCents * line.quantity, locale)}
           </p>
         </div>
         <div className="mt-1 flex items-center justify-between gap-2">
           <div
             className="flex items-center rounded-lg border"
             role="group"
-            aria-label={`Quantity for ${name}`}
+            aria-label={t("quantityFor", { name })}
           >
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={`Decrease quantity of ${name}`}
+              aria-label={t("decrease", { name })}
               onClick={() => setQuantity(line.variantId, line.quantity - 1)}
             >
               <MinusIcon />
@@ -79,7 +85,7 @@ export function CartLine({ line }: { line: CartQuoteLine }) {
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={`Increase quantity of ${name}`}
+              aria-label={t("increase", { name })}
               disabled={line.quantity >= max}
               onClick={() => setQuantity(line.variantId, line.quantity + 1, max)}
             >
@@ -89,21 +95,21 @@ export function CartLine({ line }: { line: CartQuoteLine }) {
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label={`Remove ${name}`}
+            aria-label={t("removeItem", { name })}
             onClick={() => remove(line.variantId)}
           >
             <Trash2Icon />
           </Button>
         </div>
         {line.status === "insufficient" && (
-          <p className="text-sm text-amber-700" role="status">
-            {variant.stock === 0 ? "Sold out. " : `Only ${variant.stock} left. `}
+          <p className="text-warning text-sm" role="status">
+            {variant.stock === 0 ? t("soldOut") : t("onlyLeft", { count: variant.stock })}{" "}
             <button
               type="button"
               className="underline underline-offset-2"
               onClick={() => setQuantity(line.variantId, variant.stock, variant.stock)}
             >
-              {variant.stock === 0 ? "Remove" : `Update to ${variant.stock}`}
+              {variant.stock === 0 ? t("remove") : t("updateTo", { count: variant.stock })}
             </button>
           </p>
         )}

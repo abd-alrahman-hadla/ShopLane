@@ -1,5 +1,5 @@
 /**
- * Lighthouse CI: home + a product page, 3 runs each, median run asserted at ≥ 0.95.
+ * Lighthouse CI: home + a product page in English and Arabic, 3 runs each, median run asserted at ≥ 0.95.
  *
  * (Not LHCI_* names: LHCI reads those as its own CLI flags.)
  * LIGHTHOUSE_FORM_FACTOR=mobile|desktop picks the form factor (default mobile).
@@ -8,7 +8,12 @@
  */
 const base = (process.env.LIGHTHOUSE_BASE_URL ?? "http://localhost:3100").replace(/\/$/, "");
 const preset = process.env.LIGHTHOUSE_FORM_FACTOR === "desktop" ? "desktop" : "mobile";
-const PAGES = ["/", "/products/ethiopia-yirgacheffe-kochere"];
+const PAGES = [
+  "/",
+  "/products/ethiopia-yirgacheffe-kochere",
+  "/ar",
+  "/ar/products/ethiopia-yirgacheffe-kochere",
+];
 const MIN = { minScore: 0.95, aggregationMethod: "median-run" };
 
 module.exports = {

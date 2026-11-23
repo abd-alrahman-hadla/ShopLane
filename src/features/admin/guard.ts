@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import type { DbClient } from "@/features/cart/quote";
 import { getSessionUser, signInPath, type SessionUser } from "@/lib/auth-guards";
 import { sessionTokenFromCookieHeader } from "./session-cookie";
@@ -15,7 +16,7 @@ export async function getAdminUser(): Promise<SessionUser | null> {
 /** For admin pages: sign-in for anonymous users, 404 for everyone else who isn't an admin. */
 export async function requireAdminPage(callbackPath: string): Promise<SessionUser> {
   const user = await getSessionUser();
-  if (!user) redirect(signInPath(callbackPath));
+  if (!user) redirect(signInPath(callbackPath, await getLocale()));
   if (user.role !== "ADMIN") notFound();
   return user;
 }

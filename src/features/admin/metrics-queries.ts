@@ -1,4 +1,6 @@
 import type { DbClient } from "@/features/cart/quote";
+import { translationsFor } from "@/features/catalog/localize";
+import type { Locale } from "@/i18n/routing";
 import { LOW_STOCK_THRESHOLD, STORE_TIME_ZONE } from "@/lib/store";
 import { bucketRevenueByDay, dayKey, revenueWindows, shiftDayKey, type PaidOrder } from "./metrics";
 
@@ -23,7 +25,12 @@ export type LowStockVariant = {
 };
 
 /** Everything the dashboard shows, computed for `now` in the store's time zone. */
-export async function getDashboardData(db: DbClient, now: Date = new Date()) {
+export async function getDashboardData(
+  db: DbClient,
+  now: Date = new Date(),
+  locale: Locale = "en",
+) {
+  const productName = translationsFor(locale, { name: true });
   // 61 days covers the 30-day window and the 30 days before it, in any time zone.
   const since = new Date(now.getTime() - 61 * DAY_MS);
   const orders = await db.order.findMany({
@@ -37,7 +44,9 @@ export async function getDashboardData(db: DbClient, now: Date = new Date()) {
           productName: true,
           quantity: true,
           lineTotalCents: true,
-          variant: { select: { product: { select: { id: true, name: true } } } },
+          variant: {
+            select: { product: { select: { id: true, name: true, translations: productName } } },
+          },
         },
       },
     },
@@ -61,7 +70,8 @@ export async function getDashboardData(db: DbClient, now: Date = new Date()) {
       const entry = top.get(key) ?? {
         key,
         productId: product?.id ?? null,
-        name: product?.name ?? item.productName,
+        // Orders snapshot the English name; show the current translation when there is one.
+        name: product ? product.translations[0]?.name || product.name : item.productName,
         units: 0,
         revenueCents: 0,
       };
@@ -83,7 +93,7 @@ export async function getDashboardData(db: DbClient, now: Date = new Date()) {
       sku: true,
       title: true,
       stock: true,
-      product: { select: { id: true, name: true } },
+      product: { select: { id: true, name: true, translations: productName } },
     },
   });
   const lowStock: LowStockVariant[] = lowStockRows.map((row) => ({
@@ -92,7 +102,7 @@ export async function getDashboardData(db: DbClient, now: Date = new Date()) {
     title: row.title,
     stock: row.stock,
     productId: row.product.id,
-    productName: row.product.name,
+    productName: row.product.translations[0]?.name || row.product.name,
   }));
 
   return { windows, daily, topProducts, lowStock };

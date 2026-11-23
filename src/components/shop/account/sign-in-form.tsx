@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +12,13 @@ export function SignInForm({ callbackUrl }: { callbackUrl?: string }) {
     requestMagicLink,
     {},
   );
+  const t = useTranslations("auth");
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
       {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("email")}</Label>
         <Input
           id="email"
           name="email"
@@ -33,7 +35,7 @@ export function SignInForm({ callbackUrl }: { callbackUrl?: string }) {
         )}
       </div>
       <Button type="submit" size="lg" className="h-10" disabled={isPending}>
-        {isPending ? "Sending…" : "Email me a sign-in link"}
+        {isPending ? t("sending") : t("submit")}
       </Button>
     </form>
   );

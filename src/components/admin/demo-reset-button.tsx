@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useState, useTransition } from "react";
 import { RotateCcwIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -23,6 +24,7 @@ export function DemoResetButton() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const t = useTranslations("admin.demoReset");
 
   function reset(): void {
     setError(null);
@@ -34,10 +36,13 @@ export function DemoResetButton() {
       }
       const { restoredProducts, archivedProducts, deactivatedCoupons } = result.data;
       setDone(
-        `Demo restored: ${restoredProducts} products` +
-          (archivedProducts ? `, ${archivedProducts} added products archived` : "") +
-          (deactivatedCoupons ? `, ${deactivatedCoupons} added coupons turned off` : "") +
-          ".",
+        [
+          t("restored", { count: restoredProducts }),
+          archivedProducts ? t("archived", { count: archivedProducts }) : null,
+          deactivatedCoupons ? t("deactivated", { count: deactivatedCoupons }) : null,
+        ]
+          .filter(Boolean)
+          .join(t("separator")) + t("end"),
       );
       router.refresh();
     });
@@ -57,21 +62,21 @@ export function DemoResetButton() {
         }}
       >
         <AlertDialogTrigger asChild>
-          <Button variant="outline" size="sm" data-testid="demo-reset" aria-label="Reset demo data">
+          <Button variant="outline" size="sm" data-testid="demo-reset" aria-label={t("button")}>
             <RotateCcwIcon data-icon="inline-start" />
-            <span className="hidden md:inline">Reset demo data</span>
+            <span className="hidden md:inline">{t("button")}</span>
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reset the demo data?</AlertDialogTitle>
+            <AlertDialogTitle>{t("title")}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="flex flex-col gap-2">
-                <p>This puts the store back the way it was seeded, for everyone using the demo:</p>
-                <ul className="list-disc pl-5">
-                  <li>Seeded products, prices, stock, photos and coupons are restored.</li>
-                  <li>Products and coupons added in the admin are archived or turned off.</li>
-                  <li>Orders stay, so the order history and dashboard keep working.</li>
+                <p>{t("lead")}</p>
+                <ul className="list-disc ps-5">
+                  <li>{t("point1")}</li>
+                  <li>{t("point2")}</li>
+                  <li>{t("point3")}</li>
                 </ul>
               </div>
             </AlertDialogDescription>
@@ -84,7 +89,7 @@ export function DemoResetButton() {
           {done && (
             <p
               role="status"
-              className="text-sm font-medium text-emerald-800"
+              className="text-sm font-medium text-success"
               data-testid="demo-reset-status"
             >
               {done}
@@ -92,12 +97,12 @@ export function DemoResetButton() {
           )}
           <AlertDialogFooter>
             {done ? (
-              <AlertDialogCancel>Close</AlertDialogCancel>
+              <AlertDialogCancel>{t("close")}</AlertDialogCancel>
             ) : (
               <>
-                <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel disabled={isPending}>{t("cancel")}</AlertDialogCancel>
                 <Button onClick={reset} disabled={isPending}>
-                  {isPending ? "Resetting… (up to a minute)" : "Reset demo data"}
+                  {isPending ? t("resetting") : t("button")}
                 </Button>
               </>
             )}

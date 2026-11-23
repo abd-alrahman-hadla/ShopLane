@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { ArchiveIcon, ArchiveRestoreIcon } from "lucide-react";
 import {
@@ -30,12 +31,13 @@ export function ProductLifecycle({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("admin.productPage");
 
   function run(action: (input: unknown) => Promise<{ ok: boolean; error?: string }>): void {
     setError(null);
     startTransition(async () => {
       const result = await action({ productId });
-      if (!result.ok) setError(result.error ?? "Something went wrong.");
+      if (!result.ok) setError(result.error ?? t("error"));
       else router.refresh();
     });
   }
@@ -45,7 +47,7 @@ export function ProductLifecycle({
       <div className="flex items-center gap-3">
         <Button variant="outline" onClick={() => run(restoreProduct)} disabled={isPending}>
           <ArchiveRestoreIcon data-icon="inline-start" />
-          Restore as draft
+          {t("restore")}
         </Button>
         {error && <p className="text-destructive text-sm">{error}</p>}
       </div>
@@ -58,21 +60,18 @@ export function ProductLifecycle({
         <AlertDialogTrigger asChild>
           <Button variant="outline" disabled={isPending}>
             <ArchiveIcon data-icon="inline-start" />
-            Archive
+            {t("archive")}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Archive {productName}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              It disappears from the store, search and wishlists, but stays in order history. You
-              can restore it later.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("archiveTitle", { name: productName })}</AlertDialogTitle>
+            <AlertDialogDescription>{t("archiveBody")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => run(archiveProduct)}>
-              Archive product
+              {t("archiveConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

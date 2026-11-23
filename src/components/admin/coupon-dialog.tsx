@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useId, useState, useTransition, type FormEvent } from "react";
 import { PencilIcon, PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -56,6 +57,7 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
   const [isPending, startTransition] = useTransition();
   const id = useId();
   const used = (coupon?.redemptionCount ?? 0) > 0;
+  const t = useTranslations("admin.coupons");
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -71,13 +73,13 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
           : null
         : parsePriceToCents(rawValue);
     if (value === null)
-      nextErrors.value = type === "PERCENTAGE" ? "Whole percent, e.g. 10." : "Amount like 5.00.";
+      nextErrors.value = type === "PERCENTAGE" ? t("errWholePercent") : t("errAmount");
     const minRaw = get("minSubtotal");
     const minSubtotalCents = minRaw ? parsePriceToCents(minRaw) : null;
-    if (minRaw && minSubtotalCents === null) nextErrors.minSubtotalCents = "Amount like 40.00.";
+    if (minRaw && minSubtotalCents === null) nextErrors.minSubtotalCents = t("errMinimum");
     const maxRaw = get("maxRedemptions");
     const maxRedemptions = maxRaw ? (/^\d+$/.test(maxRaw) ? Number(maxRaw) : null) : null;
-    if (maxRaw && maxRedemptions === null) nextErrors.maxRedemptions = "Whole number.";
+    if (maxRaw && maxRedemptions === null) nextErrors.maxRedemptions = t("errWhole");
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
       return;
@@ -123,30 +125,28 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {coupon ? (
-          <Button variant="ghost" size="sm" aria-label={`Edit coupon ${coupon.code}`}>
+          <Button variant="ghost" size="sm" aria-label={t("editLabel", { code: coupon.code })}>
             <PencilIcon data-icon="inline-start" />
-            Edit
+            {t("edit")}
           </Button>
         ) : (
           <Button>
             <PlusIcon data-icon="inline-start" />
-            New coupon
+            {t("new")}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={onSubmit} className="flex flex-col gap-4" data-testid="coupon-form">
           <DialogHeader>
-            <DialogTitle>{coupon ? `Edit ${coupon.code}` : "New coupon"}</DialogTitle>
+            <DialogTitle>{coupon ? t("editTitle", { code: coupon.code }) : t("new")}</DialogTitle>
             <DialogDescription>
-              {used
-                ? `Redeemed ${coupon?.redemptionCount} times, so its type and value are locked.`
-                : "Codes are case-insensitive for shoppers."}
+              {used ? t("locked", { count: coupon?.redemptionCount ?? 0 }) : t("caseInsensitive")}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label htmlFor={`${id}-code`}>Code</Label>
+              <Label htmlFor={`${id}-code`}>{t("code")}</Label>
               <Input
                 {...field("code")}
                 name="code"
@@ -154,11 +154,12 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
                 required
                 maxLength={32}
                 className="uppercase"
+                dir="ltr"
               />
               {error("code")}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${id}-type`}>Type</Label>
+              <Label htmlFor={`${id}-type`}>{t("type")}</Label>
               <select
                 id={`${id}-type`}
                 className={selectClass}
@@ -166,13 +167,13 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
                 disabled={used}
                 onChange={(event) => setType(event.target.value as CouponValues["type"])}
               >
-                <option value="PERCENTAGE">Percent off</option>
-                <option value="FIXED_AMOUNT">Amount off ($)</option>
+                <option value="PERCENTAGE">{t("typePercent")}</option>
+                <option value="FIXED_AMOUNT">{t("typeAmount")}</option>
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`${id}-value`}>
-                {type === "PERCENTAGE" ? "Percent" : "Amount ($)"}
+                {type === "PERCENTAGE" ? t("percent") : t("amount")}
               </Label>
               <Input
                 {...field("value")}
@@ -191,7 +192,7 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
               {error("value")}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${id}-minSubtotalCents`}>Minimum order ($, optional)</Label>
+              <Label htmlFor={`${id}-minSubtotalCents`}>{t("minimumOrder")}</Label>
               <Input
                 {...field("minSubtotalCents")}
                 name="minSubtotal"
@@ -201,7 +202,7 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
               {error("minSubtotalCents")}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${id}-maxRedemptions`}>Usage limit (optional)</Label>
+              <Label htmlFor={`${id}-maxRedemptions`}>{t("usageLimit")}</Label>
               <Input
                 {...field("maxRedemptions")}
                 name="maxRedemptions"
@@ -211,7 +212,7 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
               {error("maxRedemptions")}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${id}-startsAt`}>Starts (optional)</Label>
+              <Label htmlFor={`${id}-startsAt`}>{t("startsAt")}</Label>
               <Input
                 {...field("startsAt")}
                 name="startsAt"
@@ -221,7 +222,7 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
               {error("startsAt")}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor={`${id}-endsAt`}>Ends (optional)</Label>
+              <Label htmlFor={`${id}-endsAt`}>{t("endsAt")}</Label>
               <Input
                 {...field("endsAt")}
                 name="endsAt"
@@ -237,7 +238,7 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
                 defaultChecked={coupon?.isActive ?? true}
                 className="size-4"
               />
-              Active
+              {t("active")}
             </label>
           </div>
           {formError && (
@@ -247,7 +248,7 @@ export function CouponDialog({ coupon }: { coupon?: CouponValues }) {
           )}
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving…" : coupon ? "Save coupon" : "Create coupon"}
+              {isPending ? t("saving") : coupon ? t("save") : t("create")}
             </Button>
           </DialogFooter>
         </form>

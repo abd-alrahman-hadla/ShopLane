@@ -47,6 +47,12 @@ Regenerate them with `npm run screenshots`.
   - Organization/WebSite JSON-LD with a search action.
   - `sitemap.xml` and `robots.txt` (previews are never indexed).
   - Generated Open Graph cards, built with `next/og`.
+- **Languages:** English at `/` and Arabic under `/ar` (next-intl), with a full right-to-left layout.
+  - Every interface string, the admin and the emails are translated. Emails go out in the language the order was placed in.
+  - Product and category names, descriptions and SEO text are translated in the database. The product editor has an Arabic tab, and anything left empty falls back to English.
+  - Search matches Arabic names. Prices and dates are formatted per language (Latin digits in Arabic).
+  - `hreflang` links, per-language canonical URLs, and a sitemap that lists each page in both languages.
+- **Themes:** light, dark and "follow the system" (next-themes), set from the account menu and applied before first paint. The dark palette has its own colour tokens, and the chart colours are validated for both themes.
 
 ## How an order gets paid
 
@@ -143,7 +149,7 @@ What keeps the scores up:
 
 ## Accessibility
 
-`e2e/a11y.spec.ts` runs **axe-core** (WCAG 2.0/2.1/2.2 A + AA) on the home, category, product, cart drawer, sign-in, account and admin pages, on desktop and mobile. Any serious or critical violation fails CI, and the full axe report is attached to the Playwright HTML report. Lighthouse accessibility is 100 on the audited pages.
+`e2e/a11y.spec.ts` runs **axe-core** (WCAG 2.0/2.1/2.2 A + AA) on the home, category, product, cart drawer, sign-in, account and admin pages, on desktop and mobile, plus the Arabic (right-to-left) and dark-theme versions of the key pages. Any serious or critical violation fails CI, and the full axe report is attached to the Playwright HTML report. Lighthouse accessibility is 100 on the audited pages.
 
 ## Tech stack
 
@@ -151,6 +157,7 @@ What keeps the scores up:
 | ------------- | ---------------------------------------------------------------------- |
 | Framework     | Next.js 15.5 (App Router), React 19, TypeScript 5.9 (strict)           |
 | UI            | Tailwind CSS 4, shadcn/ui (Radix), lucide-react, Recharts, dnd-kit     |
+| i18n / themes | next-intl 4 (English + Arabic, RTL), next-themes                       |
 | State         | Zustand (cart, persisted)                                              |
 | Data          | PostgreSQL 18 on Neon, Prisma 7 with the Neon serverless adapter       |
 | Auth          | Auth.js v5 (database sessions, email magic link)                       |
@@ -178,13 +185,13 @@ npm run dev                     # http://localhost:3000
 
 ## Tests and checks
 
-| Command                    | What it runs                                                                                                                    |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run check`            | ESLint, `tsc --noEmit`, unit tests                                                                                              |
-| `npm run test:integration` | Vitest against a separate Neon branch (`.env.test`): checkout, webhook, coupons, admin guards                                   |
-| `npm run e2e`              | Playwright on a production build: catalog, cart, account, admin, SEO, axe, and the real Stripe purchase (needs `stripe listen`) |
-| `npm run lighthouse`       | Lighthouse CI, mobile + desktop, budget ≥ 95                                                                                    |
-| `npm run screenshots`      | Regenerates the README screenshots                                                                                              |
+| Command                    | What it runs                                                                                                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run check`            | ESLint, `tsc --noEmit`, unit tests                                                                                                                 |
+| `npm run test:integration` | Vitest against a separate Neon branch (`.env.test`): checkout, webhook, coupons, admin guards                                                      |
+| `npm run e2e`              | Playwright on a production build: catalog, cart, account, admin, SEO, languages, themes, axe, and the real Stripe purchase (needs `stripe listen`) |
+| `npm run lighthouse`       | Lighthouse CI, mobile + desktop, budget ≥ 95                                                                                                       |
+| `npm run screenshots`      | Regenerates the README screenshots                                                                                                                 |
 
 ## CI/CD
 
@@ -202,7 +209,10 @@ Vercel deploys `main` to production and every pull request to a preview. Migrati
 ## Project layout
 
 ```
-src/app/            routes: (shop) storefront, admin, api (auth, Stripe webhook, uploads, demo session)
+src/app/[locale]/   routes per language: (shop) storefront and admin
+src/app/api/        auth, Stripe webhook, uploads, demo session
+src/i18n/           next-intl routing, navigation and request config
+messages/           en.json and ar.json (same keys; a unit test checks they match)
 src/features/       domain logic per area: catalog, cart, checkout, account, reviews, wishlist, admin, seo, demo
 src/components/     UI (shadcn/ui primitives in components/ui)
 prisma/             schema, migrations, idempotent seed + demo reset

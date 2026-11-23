@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import type { Role } from "@/generated/prisma/client";
 import { auth } from "@/lib/auth";
 
@@ -12,15 +13,19 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   return { id: user.id, email: user.email, name: user.name ?? null, role: user.role };
 }
 
-/** Builds the sign-in URL that returns to `callbackPath` (relative paths only). */
-export function signInPath(callbackPath: string): string {
+/**
+ * Builds the sign-in URL that returns to `callbackPath` (relative paths only),
+ * both in the shopper's language ("/ar/sign-in?callbackUrl=/ar/account").
+ */
+export function signInPath(callbackPath: string, locale = "en"): string {
   const safe = callbackPath.startsWith("/") && !callbackPath.startsWith("//") ? callbackPath : "/";
-  return `/sign-in?callbackUrl=${encodeURIComponent(safe)}`;
+  const prefix = locale === "en" ? "" : `/${locale}`;
+  return `${prefix}/sign-in?callbackUrl=${encodeURIComponent(`${prefix}${safe}`)}`;
 }
 
 /** The signed-in user, or a redirect to sign-in that comes back to `callbackPath`. */
 export async function requireUser(callbackPath: string): Promise<SessionUser> {
   const user = await getSessionUser();
-  if (!user) redirect(signInPath(callbackPath));
+  if (!user) redirect(signInPath(callbackPath, await getLocale()));
   return user;
 }

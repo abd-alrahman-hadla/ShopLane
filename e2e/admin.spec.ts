@@ -13,11 +13,13 @@ test.describe("access control", () => {
 
   test.describe("as a customer", () => {
     test.use({ storageState: STORAGE_STATE });
-    test("the store header has no Admin link", async ({ page }) => {
+    test("the account menu has no Admin link", async ({ page }) => {
       await page.goto("/");
-      const header = page.getByRole("banner");
-      await expect(header.getByRole("link", { name: "Account" })).toBeVisible();
-      await expect(header.getByRole("link", { name: "Admin" })).toHaveCount(0);
+      const trigger = page.getByRole("banner").getByRole("button", { name: "Account" });
+      await trigger.click();
+      const menu = page.getByRole("menu");
+      await expect(menu.getByRole("menuitem", { name: "Orders" })).toBeVisible();
+      await expect(menu.getByRole("menuitem", { name: "Admin" })).toHaveCount(0);
     });
 
     test("admin pages return 404", async ({ page }) => {
@@ -33,9 +35,10 @@ test.describe("as an admin", () => {
   test.describe.configure({ mode: "serial" });
   test.skip(({ isMobile }) => isMobile, "Shares one admin user; runs on desktop only");
 
-  test("the store header links back to the admin", async ({ page }) => {
+  test("the account menu links back to the admin", async ({ page }) => {
     await page.goto("/products/stoneware-mug");
-    await page.getByRole("banner").getByRole("link", { name: "Admin" }).click();
+    await page.getByRole("banner").getByRole("button", { name: "Account" }).click();
+    await page.getByRole("menu").getByRole("menuitem", { name: "Admin" }).click();
     await expect(page).toHaveURL(/\/admin$/);
     await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
   });

@@ -9,6 +9,8 @@ export type OrderForStripe = {
   number: number;
   currency: string;
   email: string | null;
+  /** "en" returns to /checkout/success, other languages to /<locale>/checkout/success. */
+  locale?: string;
   shippingCents: number;
   discountCents: number;
   couponCode: string | null;
@@ -33,9 +35,12 @@ export function buildCheckoutSessionParams(
   order: OrderForStripe,
   { siteUrl, now, stripeCouponId }: SessionOptions,
 ): Stripe.Checkout.SessionCreateParams {
-  const base = siteUrl.replace(/\/$/, "");
+  const prefix = order.locale && order.locale !== "en" ? `/${order.locale}` : "";
+  const base = `${siteUrl.replace(/\/$/, "")}${prefix}`;
   return {
     mode: "payment",
+    // Stripe's hosted page has no Arabic; "auto" follows the browser, else English.
+    locale: "auto",
     client_reference_id: order.id,
     customer_email: order.email ?? undefined,
     metadata: { orderId: order.id, orderNumber: formatOrderNumber(order.number) },

@@ -1,6 +1,7 @@
 "use client";
 
 import { PlusIcon, Trash2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   useFieldArray,
   type Control,
@@ -19,25 +20,25 @@ type VariantsEditorProps = {
 };
 
 const COLUMNS = [
-  { field: "sku", label: "SKU", placeholder: "SO-KEN-250", className: "w-36" },
-  { field: "title", label: "Title", placeholder: "250 g", className: "w-36" },
-  { field: "size", label: "Size", placeholder: "250 g", className: "w-24" },
-  { field: "color", label: "Color", placeholder: "—", className: "w-24" },
+  { field: "sku", label: "sku", placeholder: "SO-KEN-250", className: "w-36" },
+  { field: "title", label: "title", placeholder: "250 g", className: "w-36" },
+  { field: "size", label: "size", placeholder: "250 g", className: "w-24" },
+  { field: "color", label: "color", placeholder: "—", className: "w-24" },
   {
     field: "price",
-    label: "Price ($)",
+    label: "price",
     placeholder: "21.00",
     className: "w-24",
     inputMode: "decimal",
   },
   {
     field: "compareAt",
-    label: "Compare at ($)",
+    label: "compareAt",
     placeholder: "—",
     className: "w-24",
     inputMode: "decimal",
   },
-  { field: "stock", label: "Stock", placeholder: "0", className: "w-20", inputMode: "numeric" },
+  { field: "stock", label: "stock", placeholder: "0", className: "w-20", inputMode: "numeric" },
 ] as const;
 
 export function VariantsEditor({ control, register, errors }: VariantsEditorProps) {
@@ -46,20 +47,21 @@ export function VariantsEditor({ control, register, errors }: VariantsEditorProp
     name: "variants",
     keyName: "_rhfKey",
   });
+  const t = useTranslations("admin.variants");
 
   return (
     <div className="flex flex-col gap-3">
       <div className="overflow-x-auto">
         <table className="w-full text-sm" data-testid="variants-table">
-          <thead className="text-muted-foreground text-left text-xs">
+          <thead className="text-muted-foreground text-start text-xs">
             <tr>
               {COLUMNS.map((column) => (
-                <th key={column.field} scope="col" className="px-1 pb-2 font-normal">
-                  {column.label}
+                <th key={column.field} scope="col" className="px-1 pb-2 text-start font-normal">
+                  {t(column.label)}
                 </th>
               ))}
               <th scope="col" className="pb-2">
-                <span className="sr-only">Remove</span>
+                <span className="sr-only">{t("remove")}</span>
               </th>
             </tr>
           </thead>
@@ -71,7 +73,7 @@ export function VariantsEditor({ control, register, errors }: VariantsEditorProp
                   {COLUMNS.map((column) => (
                     <td key={column.field} className="p-1">
                       <Input
-                        aria-label={`${column.label}, variant ${index + 1}`}
+                        aria-label={t("cellLabel", { label: t(column.label), number: index + 1 })}
                         placeholder={column.placeholder}
                         inputMode={"inputMode" in column ? column.inputMode : undefined}
                         className={column.className}
@@ -86,15 +88,11 @@ export function VariantsEditor({ control, register, errors }: VariantsEditorProp
                       variant="ghost"
                       size="icon-sm"
                       disabled={fields.length === 1 || field.orderCount > 0}
-                      title={
-                        field.orderCount > 0
-                          ? "In past orders: set stock to 0 instead"
-                          : "Remove variant"
-                      }
+                      title={field.orderCount > 0 ? t("inOrders") : t("removeVariant")}
                       aria-label={
                         field.orderCount > 0
-                          ? `Variant ${index + 1} is in past orders and can't be removed`
-                          : `Remove variant ${index + 1}`
+                          ? t("inOrdersLabel", { number: index + 1 })
+                          : t("removeLabel", { number: index + 1 })
                       }
                       onClick={() => remove(index)}
                     >
@@ -107,7 +105,7 @@ export function VariantsEditor({ control, register, errors }: VariantsEditorProp
           </tbody>
         </table>
       </div>
-      <VariantErrors errors={errors} />
+      <VariantErrors errors={errors} rowLabel={(row, field) => t("rowError", { row, field })} />
       <Button
         type="button"
         variant="outline"
@@ -116,14 +114,20 @@ export function VariantsEditor({ control, register, errors }: VariantsEditorProp
         onClick={() => append(emptyVariant())}
       >
         <PlusIcon data-icon="inline-start" />
-        Add variant
+        {t("add")}
       </Button>
     </div>
   );
 }
 
 /** Visible list of variant problems (row-scoped), so errors aren't conveyed by red borders alone. */
-function VariantErrors({ errors }: { errors: FieldErrors<ProductFormValues> }) {
+function VariantErrors({
+  errors,
+  rowLabel,
+}: {
+  errors: FieldErrors<ProductFormValues>;
+  rowLabel: (row: number, field: string) => string;
+}) {
   const rows = errors.variants;
   const list: string[] = [];
   if (rows && typeof rows === "object") {
@@ -131,7 +135,7 @@ function VariantErrors({ errors }: { errors: FieldErrors<ProductFormValues> }) {
     Object.entries(rows).forEach(([index, row]) => {
       if (!/^\d+$/.test(index) || !row || typeof row !== "object") return;
       for (const [field, error] of Object.entries(row as Record<string, { message?: string }>)) {
-        if (error?.message) list.push(`Row ${Number(index) + 1} ${field}: ${error.message}`);
+        if (error?.message) list.push(`${rowLabel(Number(index) + 1, field)}: ${error.message}`);
       }
     });
   }

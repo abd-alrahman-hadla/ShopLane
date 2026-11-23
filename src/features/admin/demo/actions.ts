@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { revalidateCatalog } from "@/features/catalog/cache";
 import {
@@ -25,18 +26,14 @@ const inputSchema = z.object({}).strict();
 export async function resetDemoDataAction(input: unknown): Promise<AdminResult<DemoResetSummary>> {
   const admin = await getAdminUser();
   if (!admin) return { ok: false, error: FORBIDDEN };
-  if (!inputSchema.safeParse(input).success) return { ok: false, error: "Invalid request." };
-  if (!isDemoMode()) {
-    return { ok: false, error: "Demo data can only be reset when the store runs in demo mode." };
-  }
+  const t = await getTranslations("admin.errors");
+  if (!inputSchema.safeParse(input).success) return { ok: false, error: t("invalidRequest") };
+  if (!isDemoMode()) return { ok: false, error: t("demoOnly") };
 
   const now = new Date();
   const wait = cooldownRemainingMs(await lastDemoResetAt(db), now);
   if (wait > 0) {
-    return {
-      ok: false,
-      error: `The demo was reset moments ago. Try again in ${Math.ceil(wait / 1000)} seconds.`,
-    };
+    return { ok: false, error: t("demoCooldown", { seconds: Math.ceil(wait / 1000) }) };
   }
 
   try {
@@ -45,13 +42,10 @@ export async function resetDemoDataAction(input: unknown): Promise<AdminResult<D
       now,
     });
     revalidateCatalog({ productSlugs: touchedSlugs, categories: true });
-    revalidatePath("/admin", "layout");
+    revalidatePath("/[locale]/admin", "layout");
     return { ok: true, data: summary };
   } catch (error) {
     console.error("[admin] demo reset failed", error);
-    return {
-      ok: false,
-      error: "The reset stopped part-way. Run it again to finish restoring the demo.",
-    };
+    return { ok: false, error: t("demoPartial") };
   }
 }

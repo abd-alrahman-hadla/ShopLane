@@ -1,11 +1,13 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ShoppingBagIcon } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCartHydrated, useCartStore } from "@/features/cart/store";
 import { FREE_SHIPPING_THRESHOLD_CENTS } from "@/features/checkout/pricing";
-import { formatCents } from "@/lib/money";
+import type { Locale } from "@/i18n/routing";
+import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { CartLine } from "./cart-line";
 import { CheckoutButton } from "./checkout-button";
@@ -42,6 +44,9 @@ export function CartContents({
   onNavigate?: () => void;
 }) {
   const hydrated = useCartHydrated();
+  const t = useTranslations("cart");
+  const locale = useLocale() as Locale;
+  const money = (cents: number) => formatMoney(cents, locale);
   const itemCount = useCartStore((state) => state.items.length);
   const { quote, error, isPending, refresh } = useCartQuote(hydrated && active && itemCount > 0);
 
@@ -65,13 +70,13 @@ export function CartContents({
     return (
       <div className="flex flex-col items-center gap-3 py-12 text-center">
         <ShoppingBagIcon className="text-muted-foreground size-10" aria-hidden />
-        <p className="font-medium">Your cart is empty</p>
+        <p className="font-medium">{t("empty")}</p>
         <Link
           href="/products"
           onClick={onNavigate}
           className="text-sm underline underline-offset-4"
         >
-          Start shopping
+          {t("startShopping")}
         </Link>
       </div>
     );
@@ -94,26 +99,26 @@ export function CartContents({
       <CouponForm coupon={quote.coupon} />
       <div className="flex flex-col gap-2 border-t pt-4">
         <TotalRow
-          label="Subtotal"
-          value={formatCents(totals.subtotalCents)}
+          label={t("subtotal")}
+          value={money(totals.subtotalCents)}
           testId="cart-subtotal"
         />
         {totals.discountCents > 0 && (
           <TotalRow
-            label="Discount"
-            value={`−${formatCents(totals.discountCents)}`}
+            label={t("discount")}
+            value={`−${money(totals.discountCents)}`}
             testId="cart-discount"
           />
         )}
         <TotalRow
-          label="Shipping"
-          value={totals.shippingCents === 0 ? "Free" : formatCents(totals.shippingCents)}
+          label={t("shipping")}
+          value={totals.shippingCents === 0 ? t("free") : money(totals.shippingCents)}
           testId="cart-shipping"
         />
-        <TotalRow label="Total" value={formatCents(totals.totalCents)} strong testId="cart-total" />
+        <TotalRow label={t("total")} value={money(totals.totalCents)} strong testId="cart-total" />
         {totals.shippingCents > 0 && toFreeShipping > 0 && (
           <p className="text-muted-foreground text-xs">
-            Add {formatCents(toFreeShipping)} more for free shipping.
+            {t("freeShippingHint", { amount: money(toFreeShipping) })}
           </p>
         )}
       </div>
@@ -124,9 +129,7 @@ export function CartContents({
       )}
       <CheckoutButton disabled={!quote.canCheckout || isPending} onCartChanged={refresh} />
       {!quote.canCheckout && (
-        <p className="text-muted-foreground text-center text-xs">
-          Update the highlighted items to continue.
-        </p>
+        <p className="text-muted-foreground text-center text-xs">{t("fixItems")}</p>
       )}
     </div>
   );

@@ -23,7 +23,7 @@ test("Demo customer opens their order history, signed in", async ({ page }) => {
       .first(),
   ).toBeVisible();
   // The header picks up the session after the full-page redirect.
-  await expect(page.getByRole("link", { name: "Account" })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("button", { name: "Account" })).toBeVisible();
 });
 
 test("Admin header: reset dialog explains itself, and Sign out ends the session", async ({

@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Link } from "@/i18n/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useId, useState, useTransition, type FormEvent } from "react";
 import { StarIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { deleteMyReview, getMyReviewState, submitReview } from "@/features/reviews/actions";
@@ -14,10 +15,11 @@ import { cn } from "@/lib/utils";
 
 function StarPicker({ value, onChange }: { value: number; onChange: (rating: number) => void }) {
   const name = useId();
+  const t = useTranslations("reviews");
   return (
     <fieldset className="flex flex-col gap-2">
-      <legend className="mb-2 text-sm font-medium">Your rating</legend>
-      <div className="flex gap-1">
+      <legend className="mb-2 text-sm font-medium">{t("yourRating")}</legend>
+      <div className="flex gap-1" dir="ltr">
         {[1, 2, 3, 4, 5].map((rating) => (
           <label key={rating} className="cursor-pointer">
             <input
@@ -27,7 +29,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (rating: num
               checked={value === rating}
               onChange={() => onChange(rating)}
               className="peer sr-only"
-              aria-label={`${rating} star${rating === 1 ? "" : "s"}`}
+              aria-label={t("starOption", { count: rating })}
             />
             <StarIcon
               aria-hidden
@@ -48,6 +50,7 @@ type ReviewFormProps = { productId: string; productName: string };
 /** Review form island. Only verified buyers get the form; the server enforces it again. */
 export function ReviewForm({ productId, productName }: ReviewFormProps) {
   const { status } = useSession();
+  const t = useTranslations("reviews");
   const pathname = usePathname();
   const router = useRouter();
   const textareaId = useId();
@@ -82,9 +85,9 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
           href={`/sign-in?callbackUrl=${encodeURIComponent(pathname)}`}
           className="underline underline-offset-4"
         >
-          Sign in
+          {t("signIn")}
         </Link>{" "}
-        to review this product. Only customers who bought it can leave a review.
+        {t("signInToReview")}
       </p>
     );
   }
@@ -94,7 +97,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
   if (!state.canReview && !state.existing) {
     return (
       <p className="text-muted-foreground text-sm" data-testid="review-form-status">
-        Only customers who bought {productName} can review it.
+        {t("onlyBuyers", { name: productName })}
       </p>
     );
   }
@@ -104,7 +107,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
     setError(null);
     setMessage(null);
     if (rating === 0) {
-      setError("Choose a rating from 1 to 5 stars.");
+      setError(t("chooseRating"));
       return;
     }
     startTransition(async () => {
@@ -115,7 +118,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
       }
       setState({ canReview: true, existing: { rating, body: body.trim() } });
       setEditing(false);
-      setMessage(result.created ? "Thanks! Your review is live." : "Your review has been updated.");
+      setMessage(result.created ? t("posted") : t("updated"));
       router.refresh();
     });
   }
@@ -130,7 +133,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
       setState({ canReview: state?.canReview ?? false, existing: null });
       setRating(0);
       setBody("");
-      setMessage("Your review was deleted.");
+      setMessage(t("deleted"));
       router.refresh();
     });
   }
@@ -138,18 +141,18 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
   if (state.existing && !editing) {
     return (
       <div className="flex flex-col gap-3 rounded-xl border p-4" data-testid="my-review">
-        <p className="text-sm font-medium">You reviewed this product.</p>
+        <p className="text-sm font-medium">{t("youReviewed")}</p>
         {message && (
-          <p className="text-sm text-emerald-700" role="status">
+          <p className="text-sm text-success" role="status">
             {message}
           </p>
         )}
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setEditing(true)}>
-            Edit review
+            {t("edit")}
           </Button>
           <Button variant="ghost" onClick={handleDelete} disabled={isPending}>
-            Delete
+            {t("delete")}
           </Button>
         </div>
       </div>
@@ -162,17 +165,15 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
       className="flex flex-col gap-4 rounded-xl border p-4"
       data-testid="review-form"
     >
-      <p className="text-sm font-medium">
-        {state.existing ? "Edit your review" : "Write a review"}
-      </p>
+      <p className="text-sm font-medium">{state.existing ? t("editYours") : t("write")}</p>
       {message && (
-        <p className="text-sm text-emerald-700" role="status">
+        <p className="text-sm text-success" role="status">
           {message}
         </p>
       )}
       <StarPicker value={rating} onChange={setRating} />
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={textareaId}>Your review</Label>
+        <Label htmlFor={textareaId}>{t("yourReview")}</Label>
         <textarea
           id={textareaId}
           value={body}
@@ -182,7 +183,7 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
           rows={4}
           required
           className="border-input focus-visible:border-ring focus-visible:ring-ring/50 rounded-lg border bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-3"
-          placeholder="How does it taste, brew or feel to use?"
+          placeholder={t("placeholder")}
         />
         <span className="text-muted-foreground self-end text-xs tabular-nums">
           {body.trim().length}/{REVIEW_BODY_MAX}
@@ -195,11 +196,11 @@ export function ReviewForm({ productId, productName }: ReviewFormProps) {
       )}
       <div className="flex gap-2">
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : state.existing ? "Save changes" : "Post review"}
+          {isPending ? t("saving") : state.existing ? t("saveChanges") : t("post")}
         </Button>
         {state.existing && (
           <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
-            Cancel
+            {t("cancel")}
           </Button>
         )}
       </div>

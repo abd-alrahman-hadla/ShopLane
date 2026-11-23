@@ -1,7 +1,9 @@
 import { Button, Column, Row, Section, Text } from "@react-email/components";
+import type { ReactNode } from "react";
 import { formatOrderNumber } from "@/features/checkout/order-number";
-import { formatCents } from "@/lib/money";
-import { EmailLayout, emailColors } from "./layout";
+import { formatMoney } from "@/lib/format";
+import type { EmailI18n } from "./i18n";
+import { EmailLayout, Ltr, emailColors } from "./layout";
 
 export type OrderEmailData = {
   number: number;
@@ -12,6 +14,7 @@ export type OrderEmailData = {
   taxCents: number;
   totalCents: number;
   couponCode: string | null;
+  /** Names and variant titles already in the email's language. */
   items: Array<{
     productName: string;
     variantTitle: string;
@@ -20,53 +23,76 @@ export type OrderEmailData = {
   }>;
 };
 
+const tags = {
+  strong: (chunks: ReactNode) => (
+    <strong>
+      <Ltr>{chunks}</Ltr>
+    </strong>
+  ),
+  ltr: (chunks: ReactNode) => <Ltr>{chunks}</Ltr>,
+};
+
 function SummaryRow({
   label,
   value,
   bold = false,
+  dir,
 }: {
   label: string;
   value: string;
   bold?: boolean;
+  dir: "ltr" | "rtl";
 }) {
   return (
     <Row>
       <Column>
         <Text style={{ margin: "4px 0", fontWeight: bold ? 600 : 400 }}>{label}</Text>
       </Column>
-      <Column align="right">
+      <Column align={dir === "rtl" ? "left" : "right"}>
         <Text style={{ margin: "4px 0", fontWeight: bold ? 600 : 400 }}>{value}</Text>
       </Column>
     </Row>
   );
 }
 
-function OrderSummary({ order }: { order: OrderEmailData }) {
-  const money = (cents: number) => formatCents(cents, order.currency);
+function OrderSummary({ order, i18n }: { order: OrderEmailData; i18n: EmailI18n }) {
+  const { locale, dir, t } = i18n;
+  const money = (cents: number) => formatMoney(cents, locale, order.currency);
   return (
     <Section style={{ borderTop: `1px solid ${emailColors.border}`, marginTop: 16, paddingTop: 8 }}>
       {order.items.map((item, index) => (
         <SummaryRow
           key={index}
-          label={`${item.quantity} × ${item.productName} (${item.variantTitle})`}
+          dir={dir}
+          label={t("summary.line", {
+            quantity: item.quantity,
+            name: item.productName,
+            variant: item.variantTitle,
+          })}
           value={money(item.lineTotalCents)}
         />
       ))}
       <Section
         style={{ borderTop: `1px solid ${emailColors.border}`, marginTop: 8, paddingTop: 8 }}
       >
-        <SummaryRow label="Subtotal" value={money(order.subtotalCents)} />
+        <SummaryRow dir={dir} label={t("summary.subtotal")} value={money(order.subtotalCents)} />
         {order.discountCents > 0 && (
           <SummaryRow
-            label={`Discount${order.couponCode ? ` (${order.couponCode})` : ""}`}
+            dir={dir}
+            label={
+              order.couponCode
+                ? t("summary.discountWithCode", { code: order.couponCode })
+                : t("summary.discount")
+            }
             value={`−${money(order.discountCents)}`}
           />
         )}
         <SummaryRow
-          label="Shipping"
-          value={order.shippingCents === 0 ? "Free" : money(order.shippingCents)}
+          dir={dir}
+          label={t("summary.shipping")}
+          value={order.shippingCents === 0 ? t("summary.free") : money(order.shippingCents)}
         />
-        <SummaryRow label="Total" value={money(order.totalCents)} bold />
+        <SummaryRow dir={dir} label={t("summary.total")} value={money(order.totalCents)} bold />
       </Section>
     </Section>
   );
@@ -75,19 +101,24 @@ function OrderSummary({ order }: { order: OrderEmailData }) {
 export function OrderConfirmationEmail({
   order,
   siteUrl,
+  i18n,
 }: {
   order: OrderEmailData;
   siteUrl: string;
+  i18n: EmailI18n;
 }) {
+  const { t } = i18n;
   const number = formatOrderNumber(order.number);
   return (
-    <EmailLayout preview={`Order ${number} confirmed`}>
-      <Text style={{ fontSize: 20, fontWeight: 600 }}>Thanks for your order!</Text>
+    <EmailLayout i18n={i18n} preview={t("confirmation.subject", { number })}>
+      <Text style={{ fontSize: 20, fontWeight: 600 }}>{t("confirmation.heading")}</Text>
       <Text>
-        We’ve received your payment for order <strong>{number}</strong>. We roast on Tuesdays and
-        ship within 2 business days. You’ll get another email when it’s on its way.
+        {t.rich("confirmation.body", {
+          number,
+          ...tags,
+        })}
       </Text>
-      <OrderSummary order={order} />
+      <OrderSummary order={order} i18n={i18n} />
       <Button
         href={siteUrl}
         style={{
@@ -100,48 +131,59 @@ export function OrderConfirmationEmail({
           padding: "12px 20px",
         }}
       >
-        Visit ShopLane
+        {t("confirmation.cta")}
       </Button>
     </EmailLayout>
   );
 }
 
-export function OrderOutOfStockEmail({ order }: { order: OrderEmailData }) {
+export function OrderOutOfStockEmail({ order, i18n }: { order: OrderEmailData; i18n: EmailI18n }) {
+  const { locale, t } = i18n;
   const number = formatOrderNumber(order.number);
   return (
-    <EmailLayout preview={`We couldn’t fulfil order ${number}, refund issued`}>
-      <Text style={{ fontSize: 20, fontWeight: 600 }}>Sorry, we sold out</Text>
+    <EmailLayout i18n={i18n} preview={t("outOfStock.preview", { number })}>
+      <Text style={{ fontSize: 20, fontWeight: 600 }}>{t("outOfStock.heading")}</Text>
       <Text>
-        Another customer bought the last of an item in order <strong>{number}</strong> moments
-        before your payment went through. We’ve cancelled the order and refunded{" "}
-        {formatCents(order.totalCents, order.currency)} in full. Refunds usually reach your card
-        within 5–10 business days.
+        {t.rich("outOfStock.body", {
+          number,
+          amount: formatMoney(order.totalCents, locale, order.currency),
+          ...tags,
+        })}
       </Text>
-      <OrderSummary order={order} />
+      <OrderSummary order={order} i18n={i18n} />
     </EmailLayout>
   );
 }
 
-function summaryText(order: OrderEmailData): string {
-  const money = (cents: number) => formatCents(cents, order.currency);
+function summaryText(order: OrderEmailData, i18n: EmailI18n): string {
+  const { locale, t } = i18n;
+  const money = (cents: number) => formatMoney(cents, locale, order.currency);
   const lines = order.items.map(
     (item) =>
-      `${item.quantity} × ${item.productName} (${item.variantTitle})  ${money(item.lineTotalCents)}`,
+      `${t("summary.line", { quantity: item.quantity, name: item.productName, variant: item.variantTitle })}  ${money(item.lineTotalCents)}`,
   );
   return [
     ...lines,
     "",
-    `Subtotal  ${money(order.subtotalCents)}`,
-    ...(order.discountCents > 0 ? [`Discount  −${money(order.discountCents)}`] : []),
-    `Shipping  ${order.shippingCents === 0 ? "Free" : money(order.shippingCents)}`,
-    `Total     ${money(order.totalCents)}`,
+    `${t("summary.subtotal")}  ${money(order.subtotalCents)}`,
+    ...(order.discountCents > 0
+      ? [`${t("summary.discount")}  −${money(order.discountCents)}`]
+      : []),
+    `${t("summary.shipping")}  ${order.shippingCents === 0 ? t("summary.free") : money(order.shippingCents)}`,
+    `${t("summary.total")}  ${money(order.totalCents)}`,
   ].join("\n");
 }
 
-export function orderConfirmationText(order: OrderEmailData): string {
-  return `Thanks for your order ${formatOrderNumber(order.number)}!\n\n${summaryText(order)}`;
+export function orderConfirmationText(order: OrderEmailData, i18n: EmailI18n): string {
+  const number = formatOrderNumber(order.number);
+  return `${i18n.t("confirmation.text", { number })}\n\n${summaryText(order, i18n)}`;
 }
 
-export function orderOutOfStockText(order: OrderEmailData): string {
-  return `Sorry, we couldn't fulfil order ${formatOrderNumber(order.number)}: an item sold out just before your payment completed. You have been refunded ${formatCents(order.totalCents, order.currency)} in full.\n\n${summaryText(order)}`;
+export function orderOutOfStockText(order: OrderEmailData, i18n: EmailI18n): string {
+  const { locale, t } = i18n;
+  const text = t("outOfStock.text", {
+    number: formatOrderNumber(order.number),
+    amount: formatMoney(order.totalCents, locale, order.currency),
+  });
+  return `${text}\n\n${summaryText(order, i18n)}`;
 }

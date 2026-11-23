@@ -1,5 +1,6 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { buttonVariants } from "@/components/ui/button";
+import { Link } from "@/i18n/navigation";
 
 type ListPaginationProps = {
   basePath: string;
@@ -22,26 +23,25 @@ function hrefFor(
 
 /** Previous/next links that keep the current filters (plain links, shareable). */
 export function ListPagination({ basePath, params, page, pageCount }: ListPaginationProps) {
+  const t = useTranslations("admin.pagination");
   if (pageCount <= 1) return null;
   return (
-    <nav aria-label="Pages" className="flex items-center gap-3 text-sm">
+    <nav aria-label={t("label")} className="flex items-center gap-3 text-sm">
       {page > 1 && (
         <Link
           href={hrefFor(basePath, params, page - 1)}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
-          Previous
+          {t("previous")}
         </Link>
       )}
-      <span className="text-muted-foreground">
-        Page {page} of {pageCount}
-      </span>
+      <span className="text-muted-foreground">{t("pageOf", { page, pageCount })}</span>
       {page < pageCount && (
         <Link
           href={hrefFor(basePath, params, page + 1)}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
-          Next
+          {t("next")}
         </Link>
       )}
     </nav>

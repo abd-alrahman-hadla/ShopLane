@@ -1,4 +1,5 @@
 import { ratingSummary } from "@/features/reviews/rating";
+import { localizeContent } from "./localize";
 import type { ProductCardData } from "./types";
 
 export type ProductCardRow = {
@@ -9,7 +10,9 @@ export type ProductCardRow = {
   maxPriceCents: number;
   ratingSum: number;
   ratingCount: number;
-  category: { name: string };
+  category: { name: string; translations?: Array<{ name: string }> };
+  /** At most one row: the requested locale's translation (none in English). */
+  translations?: Array<{ name: string }>;
   images: Array<{ url: string; alt: string }>;
   variants: Array<{ priceCents: number; compareAtPriceCents: number | null; stock: number }>;
 };
@@ -27,8 +30,8 @@ export function toProductCard(row: ProductCardRow): ProductCardData {
   return {
     id: row.id,
     slug: row.slug,
-    name: row.name,
-    categoryName: row.category.name,
+    name: localizeContent({ name: row.name }, row.translations?.[0]).name,
+    categoryName: localizeContent({ name: row.category.name }, row.category.translations?.[0]).name,
     image: firstImage ? { url: firstImage.url, alt: firstImage.alt } : null,
     priceFromCents: row.minPriceCents,
     hasPriceRange: row.minPriceCents !== row.maxPriceCents,

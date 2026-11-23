@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useId, useState, useTransition, type FormEvent } from "react";
 import { PackageCheckIcon, RotateCcwIcon, TruckIcon } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +20,8 @@ import { markOrderPacked, refundOrder, shipOrder } from "@/features/admin/orders
 import { REFUND_REASONS } from "@/features/admin/orders/schemas";
 import { CARRIERS } from "@/features/admin/orders/transitions";
 import { centsToPriceInput, parsePriceToCents } from "@/features/admin/products/schemas";
-import { formatCents } from "@/lib/money";
+import type { Locale } from "@/i18n/routing";
+import { formatMoney } from "@/lib/format";
 
 type RefundableItem = {
   id: string;
@@ -43,17 +45,12 @@ type OrderActionsProps = {
 const selectClass =
   "border-input focus-visible:border-ring focus-visible:ring-ring/50 h-8 rounded-lg border bg-transparent px-2.5 text-sm outline-none focus-visible:ring-3";
 
-const REASON_LABELS: Record<(typeof REFUND_REASONS)[number], string> = {
-  requested_by_customer: "Requested by customer",
-  duplicate: "Duplicate charge",
-  fraudulent: "Fraudulent",
-};
-
 function useAction() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const t = useTranslations("admin.orderActions");
 
   function run(
     task: () => Promise<{ ok: boolean; error?: string; fieldErrors?: Record<string, string> }>,
@@ -67,7 +64,7 @@ function useAction() {
       if (!result.ok) {
         // Field messages too: some fields (like the order ID) aren't on the form to highlight.
         const details = Object.values(result.fieldErrors ?? {}).join(" ");
-        setError([result.error ?? "Something went wrong.", details].filter(Boolean).join(" "));
+        setError([result.error ?? t("error"), details].filter(Boolean).join(" "));
         return;
       }
       setMessage(success);
@@ -88,6 +85,7 @@ function ShipForm({
   const carrierId = useId();
   const numberId = useId();
   const shipped = status === "SHIPPED";
+  const t = useTranslations("admin.orderActions");
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -99,9 +97,7 @@ function ShipForm({
           carrier: String(data.get("carrier")),
           trackingNumber: String(data.get("trackingNumber") ?? ""),
         }),
-      shipped
-        ? "Tracking updated. The customer was emailed the new number."
-        : "Marked as shipped. The customer was emailed.",
+      shipped ? t("trackingUpdated") : t("shippedDone"),
     );
   }
 
@@ -109,7 +105,7 @@ function ShipForm({
     <form onSubmit={onSubmit} className="flex flex-col gap-3" data-testid="ship-form">
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={carrierId}>Carrier</Label>
+          <Label htmlFor={carrierId}>{t("carrier")}</Label>
           <select
             id={carrierId}
             name="carrier"
@@ -124,7 +120,7 @@ function ShipForm({
           </select>
         </div>
         <div className="flex min-w-48 flex-1 flex-col gap-1.5">
-          <Label htmlFor={numberId}>Tracking number</Label>
+          <Label htmlFor={numberId}>{t("trackingNumber")}</Label>
           <Input
             id={numberId}
             name="trackingNumber"
@@ -132,11 +128,12 @@ function ShipForm({
             required
             minLength={4}
             maxLength={60}
+            dir="ltr"
           />
         </div>
         <Button type="submit" disabled={isPending}>
           <TruckIcon data-icon="inline-start" />
-          {shipped ? "Update tracking" : "Mark shipped"}
+          {shipped ? t("updateTracking") : t("markShipped")}
         </Button>
       </div>
       {error && (
@@ -145,7 +142,7 @@ function ShipForm({
         </p>
       )}
       {message && (
-        <p className="text-sm text-emerald-700" role="status">
+        <p className="text-sm text-success" role="status">
           {message}
         </p>
       )}
@@ -167,6 +164,9 @@ function RefundDialog({
   const amountId = useId();
   const reasonId = useId();
   const noteId = useId();
+  const t = useTranslations("admin.orderActions");
+  const locale = useLocale() as Locale;
+  const maxAmount = formatMoney(refundableCents, locale, currency);
 
   function onOpenChange(next: boolean): void {
     setOpen(next);
@@ -181,10 +181,8 @@ function RefundDialog({
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     const amountCents = parsePriceToCents(amount);
-    if (amountCents === null || amountCents <= 0)
-      return setFieldError("Enter an amount like 12.50.");
-    if (amountCents > refundableCents)
-      return setFieldError(`At most ${formatCents(refundableCents, currency)}.`);
+    if (amountCents === null || amountCents <= 0) return setFieldError(t("errAmount"));
+    if (amountCents > refundableCents) return setFieldError(t("errAtMost", { amount: maxAmount }));
     setFieldError(null);
     const data = new FormData(event.currentTarget);
     const restock = items
@@ -203,7 +201,7 @@ function RefundDialog({
           note: String(data.get("note") ?? ""),
           restock,
         }),
-      "Refund issued.",
+      t("refundIssued"),
       () => setOpen(false),
     );
   }
@@ -213,20 +211,17 @@ function RefundDialog({
       <DialogTrigger asChild>
         <Button variant="outline">
           <RotateCcwIcon data-icon="inline-start" />
-          Refund
+          {t("refund")}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={onSubmit} className="flex flex-col gap-4" data-testid="refund-form">
           <DialogHeader>
-            <DialogTitle>Refund through Stripe</DialogTitle>
-            <DialogDescription>
-              Up to {formatCents(refundableCents, currency)} can be refunded. This can&apos;t be
-              undone.
-            </DialogDescription>
+            <DialogTitle>{t("refundTitle")}</DialogTitle>
+            <DialogDescription>{t("refundBody", { amount: maxAmount })}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={amountId}>Amount ($)</Label>
+            <Label htmlFor={amountId}>{t("amount")}</Label>
             <Input
               id={amountId}
               value={amount}
@@ -242,7 +237,7 @@ function RefundDialog({
             )}
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={reasonId}>Reason</Label>
+            <Label htmlFor={reasonId}>{t("reason")}</Label>
             <select
               id={reasonId}
               name="reason"
@@ -251,18 +246,18 @@ function RefundDialog({
             >
               {REFUND_REASONS.map((reason) => (
                 <option key={reason} value={reason}>
-                  {REASON_LABELS[reason]}
+                  {t(`reasons.${reason}`)}
                 </option>
               ))}
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor={noteId}>Internal note (optional)</Label>
+            <Label htmlFor={noteId}>{t("note")}</Label>
             <Input id={noteId} name="note" maxLength={200} />
           </div>
           {items.some((item) => item.canRestock) && (
             <fieldset className="flex flex-col gap-2">
-              <legend className="mb-1 text-sm font-medium">Return to stock</legend>
+              <legend className="mb-1 text-sm font-medium">{t("returnToStock")}</legend>
               {items
                 .filter((item) => item.canRestock)
                 .map((item) => {
@@ -274,7 +269,7 @@ function RefundDialog({
                     >
                       <span>
                         {item.label}
-                        <span className="text-muted-foreground"> (up to {max})</span>
+                        <span className="text-muted-foreground"> {t("upTo", { max })}</span>
                       </span>
                       <Input
                         type="number"
@@ -283,7 +278,7 @@ function RefundDialog({
                         max={max}
                         defaultValue={0}
                         className="w-20"
-                        aria-label={`Units of ${item.label} to return to stock`}
+                        aria-label={t("restockLabel", { item: item.label })}
                       />
                     </label>
                   );
@@ -297,7 +292,7 @@ function RefundDialog({
           )}
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Refunding…" : "Issue refund"}
+              {isPending ? t("refunding") : t("issueRefund")}
             </Button>
           </DialogFooter>
         </form>
@@ -309,6 +304,7 @@ function RefundDialog({
 /** Status changes and refunds for one order. Every action is re-authorized and audited on the server. */
 export function OrderActions(props: OrderActionsProps) {
   const pack = useAction();
+  const t = useTranslations("admin.orderActions");
   const canShip = ["PAID", "FULFILLED", "SHIPPED"].includes(props.status);
 
   return (
@@ -317,7 +313,7 @@ export function OrderActions(props: OrderActionsProps) {
       className="bg-card flex flex-col gap-4 rounded-xl border p-4"
     >
       <h2 id="actions-heading" className="font-medium">
-        Fulfilment
+        {t("title")}
       </h2>
       {props.status === "PAID" && (
         <div className="flex flex-col gap-2">
@@ -326,11 +322,11 @@ export function OrderActions(props: OrderActionsProps) {
             className="self-start"
             disabled={pack.isPending}
             onClick={() =>
-              pack.run(() => markOrderPacked({ orderId: props.orderId }), "Marked as packed.")
+              pack.run(() => markOrderPacked({ orderId: props.orderId }), t("packedDone"))
             }
           >
             <PackageCheckIcon data-icon="inline-start" />
-            Mark packed
+            {t("markPacked")}
           </Button>
           {pack.error && (
             <p className="text-destructive text-sm" role="alert">
@@ -338,7 +334,7 @@ export function OrderActions(props: OrderActionsProps) {
             </p>
           )}
           {pack.message && (
-            <p className="text-sm text-emerald-700" role="status">
+            <p className="text-sm text-success" role="status">
               {pack.message}
             </p>
           )}
@@ -352,7 +348,7 @@ export function OrderActions(props: OrderActionsProps) {
           trackingNumber={props.trackingNumber}
         />
       ) : (
-        <p className="text-muted-foreground text-sm">No fulfilment actions for this order.</p>
+        <p className="text-muted-foreground text-sm">{t("noActions")}</p>
       )}
       {props.canRefund && props.refundableCents > 0 && (
         <div className="border-t pt-4">

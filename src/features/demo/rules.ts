@@ -20,8 +20,9 @@ export function isDemoRole(value: unknown): value is DemoRole {
 }
 
 /** Where each demo account lands after signing in. */
-export function demoLandingPath(role: DemoRole): string {
-  return role === "admin" ? "/admin" : "/account/orders";
+export function demoLandingPath(role: DemoRole, locale: string = "en"): string {
+  const prefix = locale === "ar" ? "/ar" : "";
+  return `${prefix}${role === "admin" ? "/admin" : "/account/orders"}`;
 }
 
 /**

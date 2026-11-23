@@ -11,6 +11,10 @@ test("sitemap lists categories and active products, but no drafts", async ({ req
   expect(xml).toContain("/products/ethiopia-yirgacheffe-kochere</loc>");
   expect(xml).not.toContain("/products/e2e-");
   expect(xml).not.toContain("/admin");
+  // Each page in both languages, linked to each other with hreflang.
+  expect(xml).toContain("/ar/products/ethiopia-yirgacheffe-kochere</loc>");
+  expect(xml).toMatch(/hreflang="ar"[^>]*\/ar\/products\/ethiopia-yirgacheffe-kochere"/);
+  expect(xml).toContain('hreflang="x-default"');
 });
 
 test("robots.txt keeps crawlers out of private areas and points to the sitemap", async ({
@@ -20,6 +24,8 @@ test("robots.txt keeps crawlers out of private areas and points to the sitemap",
   expect(body).toContain("Disallow: /admin");
   expect(body).toContain("Disallow: /account");
   expect(body).toContain("Disallow: /checkout");
+  expect(body).toContain("Disallow: /ar/admin");
+  expect(body).toContain("Disallow: /ar/account");
   expect(body).toMatch(/Sitemap: https?:\/\/[^\s]+\/sitemap\.xml/);
 });
 
@@ -51,6 +57,19 @@ test("product page has canonical, Open Graph image and Product JSON-LD with offe
     expect(offer.availability).toMatch(/^https:\/\/schema\.org\/(InStock|OutOfStock)$/);
   }
   expect(graph.some((node) => node["@type"] === "BreadcrumbList")).toBe(true);
+});
+
+test("Arabic product page is canonical to itself and links to the English one", async ({
+  page,
+}) => {
+  await page.goto("/ar/products/ethiopia-yirgacheffe-kochere");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
+  expect(canonical).toMatch(/\/ar\/products\/ethiopia-yirgacheffe-kochere$/);
+  const english = await page.locator('link[rel="alternate"][hreflang="en"]').getAttribute("href");
+  expect(english).not.toContain("/ar/");
+  expect(english).toMatch(/\/products\/ethiopia-yirgacheffe-kochere$/);
 });
 
 test("private pages are noindex", async ({ page }) => {

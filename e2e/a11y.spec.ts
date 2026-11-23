@@ -63,6 +63,52 @@ test.describe("storefront", () => {
   });
 });
 
+test.describe("Arabic (right to left)", () => {
+  test("home", async ({ page }, testInfo) => {
+    await page.goto("/ar");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expectAccessible(page, testInfo, "ar-home");
+  });
+
+  test("product page", async ({ page }, testInfo) => {
+    await page.goto("/ar/products/ethiopia-yirgacheffe-kochere");
+    await expect(page.getByRole("button", { name: "أضف إلى السلة" })).toBeEnabled();
+    await expectAccessible(page, testInfo, "ar-product");
+  });
+
+  test("open cart drawer", async ({ page }, testInfo) => {
+    await page.goto("/ar/products/stoneware-mug");
+    await page.getByRole("button", { name: "أضف إلى السلة" }).click();
+    await expect(
+      page.getByTestId("cart-drawer").getByRole("button", { name: "إتمام الشراء" }),
+    ).toBeVisible();
+    await expectAccessible(page, testInfo, "ar-cart-drawer");
+  });
+});
+
+test.describe("dark theme", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("home", async ({ page }, testInfo) => {
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expectAccessible(page, testInfo, "dark-home");
+  });
+
+  test("category with filters applied", async ({ page }, testInfo) => {
+    await page.goto("/categories/single-origin?inStock=1&sort=price-asc");
+    await expect(page.getByRole("main").getByTestId("result-summary")).toBeVisible();
+    await expectAccessible(page, testInfo, "dark-category");
+  });
+
+  test("product page in Arabic", async ({ page }, testInfo) => {
+    await page.goto("/ar/products/ethiopia-yirgacheffe-kochere");
+    await expect(page.getByRole("button", { name: "أضف إلى السلة" })).toBeEnabled();
+    await expectAccessible(page, testInfo, "dark-ar-product");
+  });
+});
+
 test.describe("account", () => {
   test.use({ storageState: STORAGE_STATE });
 
@@ -87,6 +133,19 @@ test.describe("admin", () => {
     await page.goto("/admin");
     await expect(page.getByRole("heading", { level: 1, name: "Dashboard" })).toBeVisible();
     await expectAccessible(page, testInfo, "admin-dashboard");
+  });
+
+  test("dashboard in Arabic, dark", async ({ browser }, testInfo) => {
+    const context = await browser.newContext({
+      storageState: ADMIN_STORAGE_STATE,
+      colorScheme: "dark",
+      baseURL: testInfo.project.use.baseURL,
+    });
+    const page = await context.newPage();
+    await page.goto("/ar/admin");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expectAccessible(page, testInfo, "admin-dashboard-ar-dark");
+    await context.close();
   });
 
   test("product editor", async ({ page }, testInfo) => {

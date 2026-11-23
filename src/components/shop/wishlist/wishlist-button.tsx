@@ -1,9 +1,10 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { useSession } from "next-auth/react";
 import { useState, useTransition } from "react";
 import { HeartIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { setWishlistedAction } from "@/features/wishlist/actions";
 import { useWishlistStore } from "@/features/wishlist/store";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export function WishlistButton({
   variant = "icon",
 }: WishlistButtonProps) {
   const { status } = useSession();
+  const t = useTranslations("wishlist");
   const router = useRouter();
   const pathname = usePathname();
   const wishlisted = useWishlistStore((state) => state.ids.has(productId));
@@ -46,18 +48,12 @@ export function WishlistButton({
       const result = await setWishlistedAction({ productId, wishlisted: next });
       if (!result.ok) {
         setOne(productId, !next);
-        setError(
-          result.error === "wishlist_full"
-            ? "Your wishlist is full."
-            : "Couldn’t update your wishlist.",
-        );
+        setError(result.error === "wishlist_full" ? t("full") : t("updateFailed"));
       }
     });
   }
 
-  const label = wishlisted
-    ? `Remove ${productName} from wishlist`
-    : `Save ${productName} to wishlist`;
+  const label = wishlisted ? t("remove", { name: productName }) : t("save", { name: productName });
 
   return (
     <>
@@ -79,9 +75,9 @@ export function WishlistButton({
       >
         <HeartIcon
           aria-hidden
-          className={cn("size-4.5", wishlisted ? "fill-red-600 text-red-600" : "text-foreground")}
+          className={cn("size-4.5", wishlisted ? "fill-danger text-danger" : "text-foreground")}
         />
-        {variant === "labelled" && (wishlisted ? "Saved" : "Save to wishlist")}
+        {variant === "labelled" && (wishlisted ? t("saved") : t("saveLabel"))}
       </button>
       {error && (
         <span role="alert" className="sr-only">

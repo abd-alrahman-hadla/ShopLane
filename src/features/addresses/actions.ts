@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth-guards";
 import { db } from "@/lib/db";
@@ -8,6 +9,13 @@ import { createAddress, deleteAddress, setDefaultAddress, updateAddress } from "
 import { addressFromFormData, addressInputSchema, MAX_ADDRESSES } from "./schemas";
 
 const ADDRESSES_PATH = "/account/addresses";
+/** Revalidates the page in every language. */
+const ADDRESSES_ROUTE = "/[locale]/account/addresses";
+const INVALID_FORMAT_KEYS: Record<string, string> = {
+  region: "chooseState",
+  postalCode: "zip",
+  phone: "phone",
+};
 const idSchema = z.string().min(1).max(40);
 
 export type AddressFormState = {
@@ -22,15 +30,23 @@ export async function saveAddress(
   formData: FormData,
 ): Promise<AddressFormState> {
   const user = await requireUser(ADDRESSES_PATH);
+  const t = await getTranslations("addresses");
   const parsed = addressInputSchema.safeParse(addressFromFormData(formData));
   if (!parsed.success) {
-    const fieldErrors = Object.fromEntries(
-      Object.entries(z.flattenError(parsed.error).fieldErrors).map(([field, errors]) => [
-        field,
-        errors?.[0],
-      ]),
-    );
-    return { error: "Please fix the highlighted fields.", fieldErrors };
+    // One message per field, in the shopper's language (the schema's own text is English).
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const field = String(issue.path[0] ?? "");
+      if (!field || fieldErrors[field]) continue;
+      const label = t(`fields.${field}`);
+      fieldErrors[field] =
+        issue.code === "too_small"
+          ? t("errors.required", { field: label })
+          : issue.code === "too_big"
+            ? t("errors.tooLong", { field: label })
+            : t(`errors.${INVALID_FORMAT_KEYS[field] ?? "invalid"}`, { field: label });
+    }
+    return { error: t("errors.fixFields"), fieldErrors };
   }
 
   const addressId = formData.get("addressId");
@@ -42,11 +58,11 @@ export async function saveAddress(
     return {
       error:
         result.error === "limit_reached"
-          ? `You can save up to ${MAX_ADDRESSES} addresses.`
-          : "That address no longer exists.",
+          ? t("errors.limit", { max: MAX_ADDRESSES })
+          : t("errors.gone"),
     };
   }
-  revalidatePath(ADDRESSES_PATH);
+  revalidatePath(ADDRESSES_ROUTE, "page");
   return { ok: true };
 }
 
@@ -55,7 +71,7 @@ export async function removeAddress(addressId: unknown): Promise<{ ok: boolean }
   const parsed = idSchema.safeParse(addressId);
   if (!parsed.success) return { ok: false };
   const result = await deleteAddress(db, user.id, parsed.data);
-  revalidatePath(ADDRESSES_PATH);
+  revalidatePath(ADDRESSES_ROUTE, "page");
   return { ok: result.ok };
 }
 
@@ -64,6 +80,6 @@ export async function makeDefaultAddress(addressId: unknown): Promise<{ ok: bool
   const parsed = idSchema.safeParse(addressId);
   if (!parsed.success) return { ok: false };
   const result = await setDefaultAddress(db, user.id, parsed.data);
-  revalidatePath(ADDRESSES_PATH);
+  revalidatePath(ADDRESSES_ROUTE, "page");
   return { ok: result.ok };
 }

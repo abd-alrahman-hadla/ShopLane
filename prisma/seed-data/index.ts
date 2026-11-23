@@ -18,5 +18,7 @@ export const seedProducts: SeedProduct[] = [
 export const seedCoupons: SeedCoupon[] = coupons;
 
 export { photoUrl, photos } from "./photos";
+export { arCategories, arProducts } from "./ar";
+export type { SeedTranslation } from "./ar";
 export type { SeedCategory, SeedProduct, SeedVariant, SeedImage } from "./types";
 export type { SeedCoupon } from "./coupons";

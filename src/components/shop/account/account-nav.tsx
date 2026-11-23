@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/account", label: "Profile" },
-  { href: "/account/orders", label: "Orders" },
-  { href: "/account/addresses", label: "Addresses" },
-  { href: "/account/wishlist", label: "Wishlist" },
+  { href: "/account", label: "profile" },
+  { href: "/account/orders", label: "orders" },
+  { href: "/account/addresses", label: "addresses" },
+  { href: "/account/wishlist", label: "wishlist" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -20,8 +20,9 @@ function isActive(pathname: string, href: string): boolean {
 /** Side nav on desktop, scrollable tabs on mobile. */
 export function AccountNav() {
   const pathname = usePathname();
+  const t = useTranslations("account");
   return (
-    <nav aria-label="Account">
+    <nav aria-label={t("nav")}>
       <ul className="flex gap-1 overflow-x-auto border-b pb-2 lg:flex-col lg:border-b-0 lg:pb-0">
         {LINKS.map((link) => {
           const active = isActive(pathname, link.href);
@@ -37,7 +38,7 @@ export function AccountNav() {
                     : "text-muted-foreground hover:text-foreground hover:bg-muted",
                 )}
               >
-                {link.label}
+                {t(link.label)}
               </Link>
             </li>
           );

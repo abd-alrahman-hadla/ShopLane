@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { makeDefaultAddress, removeAddress } from "@/features/addresses/actions";
@@ -14,6 +15,7 @@ export function AddressCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("addresses");
 
   if (editing) {
     return (
@@ -25,11 +27,15 @@ export function AddressCard({
 
   return (
     <li className="flex flex-col gap-3 rounded-xl border p-4" data-testid="address-card">
-      <address className="text-sm leading-relaxed not-italic">
+      {/* US addresses keep their Latin, left-to-right order in every language. */}
+      <address className="text-sm leading-relaxed not-italic" dir="ltr">
         <span className="font-medium">{address.fullName}</span>
         {isDefault && (
-          <span className="bg-secondary ml-2 rounded-full px-2 py-0.5 text-xs font-medium">
-            Default
+          <span
+            className="bg-secondary ms-2 rounded-full px-2 py-0.5 text-xs font-medium"
+            dir="auto"
+          >
+            {t("default")}
           </span>
         )}
         <br />
@@ -51,7 +57,7 @@ export function AddressCard({
       </address>
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-          Edit
+          {t("edit")}
         </Button>
         {!isDefault && (
           <Button
@@ -60,7 +66,7 @@ export function AddressCard({
             disabled={isPending}
             onClick={() => startTransition(async () => void (await makeDefaultAddress(address.id)))}
           >
-            Make default
+            {t("makeDefault")}
           </Button>
         )}
         <Button
@@ -68,9 +74,9 @@ export function AddressCard({
           size="sm"
           disabled={isPending}
           onClick={() => startTransition(async () => void (await removeAddress(address.id)))}
-          aria-label={`Delete address for ${address.fullName}, ${address.line1}`}
+          aria-label={t("deleteLabel", { name: address.fullName, line1: address.line1 })}
         >
-          Delete
+          {t("delete")}
         </Button>
       </div>
     </li>

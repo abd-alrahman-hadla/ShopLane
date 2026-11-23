@@ -33,6 +33,12 @@ const product: EditableProduct = {
       variantSku: "CA-STM-08-WHT",
     },
   ],
+  arabic: {
+    name: "كوب من الفخار الحجري",
+    description: "فخار حجري مشكّل على عجلة الفخار.",
+    seoTitle: null,
+    seoDescription: null,
+  },
 };
 
 describe("product form values", () => {
@@ -46,7 +52,30 @@ describe("product form values", () => {
       compareAtPriceCents: null,
       stock: 30,
     });
+    expect(result.payload.translations).toEqual({
+      ar: {
+        name: "كوب من الفخار الحجري",
+        description: "فخار حجري مشكّل على عجلة الفخار.",
+        seoTitle: "",
+        seoDescription: "",
+      },
+    });
     expect(productFormSchema.safeParse(result.payload).success).toBe(true);
+  });
+
+  it("sends empty Arabic fields when there is no Arabic version", () => {
+    const result = toPayload(toFormValues({ ...product, arabic: null }, "c1"));
+    expect(result.ok && result.payload.translations?.ar.name).toBe("");
+    expect(result.ok && productFormSchema.safeParse(result.payload).success).toBe(true);
+  });
+
+  it("rejects Arabic content without an Arabic name", () => {
+    const values = toFormValues(product, "c1");
+    values.arabic = { name: "", description: "وصف فقط", seoTitle: "", seoDescription: "" };
+    const result = toPayload(values);
+    const parsed = result.ok ? productFormSchema.safeParse(result.payload) : null;
+    expect(parsed?.success).toBe(false);
+    expect(parsed?.error?.issues[0]?.path).toEqual(["translations", "ar", "name"]);
   });
 
   it("starts a new product as a draft with one empty variant", () => {

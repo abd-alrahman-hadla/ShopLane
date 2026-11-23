@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useState, useTransition } from "react";
 import { Trash2Icon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,13 +32,14 @@ export function CouponActiveSwitch({
   const [checked, setChecked] = useState(isActive);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const t = useTranslations("admin.coupons");
 
   return (
     <div className="flex items-center gap-2">
       <Switch
         checked={checked}
         disabled={isPending}
-        aria-label={`${code} active`}
+        aria-label={t("activeLabel", { code })}
         onCheckedChange={(next) => {
           setChecked(next);
           setError(null);
@@ -74,6 +76,7 @@ export function DeleteCouponButton({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  const t = useTranslations("admin.coupons");
   if (used) return null; // Used coupons are deactivated, never deleted.
   return (
     <>
@@ -83,21 +86,19 @@ export function DeleteCouponButton({
             variant="ghost"
             size="sm"
             disabled={isPending}
-            aria-label={`Delete coupon ${code}`}
+            aria-label={t("deleteLabel", { code })}
           >
             <Trash2Icon data-icon="inline-start" />
-            Delete
+            {t("delete")}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {code}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              It has never been used. This can&apos;t be undone (the audit log keeps a record).
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("deleteTitle", { code })}</AlertDialogTitle>
+            <AlertDialogDescription>{t("deleteBody")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 startTransition(async () => {
@@ -107,7 +108,7 @@ export function DeleteCouponButton({
                 })
               }
             >
-              Delete coupon
+              {t("deleteConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

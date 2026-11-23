@@ -21,7 +21,7 @@ export async function setWishlistedAction(input: unknown): Promise<WishlistActio
   if (!parsed.success) return { ok: false, error: "invalid" };
   const result = await setWishlisted(db, user.id, parsed.data.productId, parsed.data.wishlisted);
   // Refreshes the wishlist page when the change was made there (no effect elsewhere).
-  if (result.ok) revalidatePath("/account/wishlist");
+  if (result.ok) revalidatePath("/[locale]/account/wishlist", "page");
   return result;
 }
 

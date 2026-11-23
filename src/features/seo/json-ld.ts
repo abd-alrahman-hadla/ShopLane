@@ -33,8 +33,9 @@ export function productJsonLd(
   product: ProductDetail,
   siteUrl: string,
   now: Date = new Date(),
+  locale = "en",
 ): JsonLd {
-  const productUrl = absoluteUrl(siteUrl, `/products/${product.slug}`);
+  const productUrl = absoluteUrl(siteUrl, `${localePrefix(locale)}/products/${product.slug}`);
   const priceValidUntil = oneYearFrom(now);
   return {
     "@context": "https://schema.org",
@@ -43,6 +44,7 @@ export function productJsonLd(
     name: product.name,
     description: product.description,
     url: productUrl,
+    inLanguage: locale,
     image: product.images.map((image) => image.url),
     sku: product.variants[0]?.sku,
     category: product.category.name,
@@ -72,11 +74,17 @@ export function productJsonLd(
 }
 
 /** Home → category → product trail for rich results. */
-export function breadcrumbJsonLd(product: ProductDetail, siteUrl: string): JsonLd {
+export function breadcrumbJsonLd(
+  product: ProductDetail,
+  siteUrl: string,
+  locale = "en",
+  homeLabel = "Home",
+): JsonLd {
+  const prefix = localePrefix(locale);
   const trail = [
-    { name: "Home", path: "/" },
-    { name: product.category.name, path: `/categories/${product.category.slug}` },
-    { name: product.name, path: `/products/${product.slug}` },
+    { name: homeLabel, path: `${prefix}/` },
+    { name: product.category.name, path: `${prefix}/categories/${product.category.slug}` },
+    { name: product.name, path: `${prefix}/products/${product.slug}` },
   ];
   return {
     "@context": "https://schema.org",
@@ -90,9 +98,15 @@ export function breadcrumbJsonLd(product: ProductDetail, siteUrl: string): JsonL
   };
 }
 
+/** URL prefix for a language: "" for English (the default), "/ar" for Arabic. */
+export function localePrefix(locale: string): string {
+  return locale === "en" ? "" : `/${locale}`;
+}
+
 /** Organization + WebSite (with sitelinks search box) for the home page. */
-export function siteJsonLd(siteUrl: string): JsonLd[] {
-  const home = absoluteUrl(siteUrl, "/");
+export function siteJsonLd(siteUrl: string, locale = "en"): JsonLd[] {
+  const prefix = localePrefix(locale);
+  const home = absoluteUrl(siteUrl, `${prefix}/`);
   return [
     {
       "@context": "https://schema.org",
@@ -106,9 +120,13 @@ export function siteJsonLd(siteUrl: string): JsonLd[] {
       "@type": "WebSite",
       name: SITE_NAME,
       url: home,
+      inLanguage: locale,
       potentialAction: {
         "@type": "SearchAction",
-        target: { "@type": "EntryPoint", urlTemplate: `${absoluteUrl(siteUrl, "/search")}?q={q}` },
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${absoluteUrl(siteUrl, `${prefix}/search`)}?q={q}`,
+        },
         "query-input": "required name=q",
       },
     },

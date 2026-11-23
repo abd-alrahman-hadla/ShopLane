@@ -2,8 +2,10 @@ import { unstable_cache } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
 import { ratingSummary } from "@/features/reviews/rating";
 import { db } from "@/lib/db";
+import type { Locale } from "@/i18n/routing";
 import { CATALOG_TAGS } from "./cache";
 import type { CatalogFilters } from "./filters";
+import { localizeContent, translationsFor } from "./localize";
 import { toProductCard } from "./mappers";
 import { computeFacets } from "./options";
 import type {
@@ -18,21 +20,25 @@ import { buildOrderBy, buildProductWhere, buildScopeWhere, getPageWindow } from 
 /** Fallback time-based revalidation; tags purge sooner on admin edits. */
 const REVALIDATE_SECONDS = 3600;
 
-export const productCardSelect = {
-  id: true,
-  slug: true,
-  name: true,
-  minPriceCents: true,
-  maxPriceCents: true,
-  ratingSum: true,
-  ratingCount: true,
-  category: { select: { name: true } },
-  images: { select: { url: true, alt: true }, orderBy: { position: "asc" }, take: 1 },
-  variants: { select: { priceCents: true, compareAtPriceCents: true, stock: true } },
-} satisfies Prisma.ProductSelect;
+/** Card fields plus the locale's translated product and category names. */
+export function productCardSelect(locale: Locale) {
+  return {
+    id: true,
+    slug: true,
+    name: true,
+    minPriceCents: true,
+    maxPriceCents: true,
+    ratingSum: true,
+    ratingCount: true,
+    category: { select: { name: true, translations: translationsFor(locale, { name: true }) } },
+    translations: translationsFor(locale, { name: true }),
+    images: { select: { url: true, alt: true }, orderBy: { position: "asc" }, take: 1 },
+    variants: { select: { priceCents: true, compareAtPriceCents: true, stock: true } },
+  } satisfies Prisma.ProductSelect;
+}
 
 export const getProductList = unstable_cache(
-  async (filters: CatalogFilters): Promise<ProductListResult> => {
+  async (filters: CatalogFilters, locale: Locale): Promise<ProductListResult> => {
     const where = buildProductWhere(filters);
     const total = await db.product.count({ where });
     const window = getPageWindow(filters.page, total);
@@ -41,7 +47,7 @@ export const getProductList = unstable_cache(
       orderBy: buildOrderBy(filters.sort),
       skip: window.skip,
       take: window.take,
-      select: productCardSelect,
+      select: productCardSelect(locale),
     });
     return {
       items: rows.map(toProductCard),
@@ -67,7 +73,7 @@ export const getFacets = unstable_cache(
 );
 
 export const getCategories = unstable_cache(
-  async (): Promise<CategorySummary[]> => {
+  async (locale: Locale): Promise<CategorySummary[]> => {
     const rows = await db.category.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: {
@@ -76,27 +82,34 @@ export const getCategories = unstable_cache(
         name: true,
         description: true,
         imageUrl: true,
+        translations: translationsFor(locale, { name: true, description: true }),
         _count: { select: { products: { where: { status: "ACTIVE" } } } },
       },
     });
-    return rows.map(({ _count, ...category }) => ({ ...category, productCount: _count.products }));
+    return rows.map(({ _count, translations, ...category }) => ({
+      ...localizeContent(category, translations[0]),
+      productCount: _count.products,
+    }));
   },
   ["catalog:categories"],
   { tags: [CATALOG_TAGS.categories, CATALOG_TAGS.products], revalidate: REVALIDATE_SECONDS },
 );
 
-export async function getCategoryBySlug(slug: string): Promise<CategorySummary | null> {
-  const categories = await getCategories();
+export async function getCategoryBySlug(
+  slug: string,
+  locale: Locale,
+): Promise<CategorySummary | null> {
+  const categories = await getCategories(locale);
   return categories.find((category) => category.slug === slug) ?? null;
 }
 
 export const getFeaturedProducts = unstable_cache(
-  async (limit: number = 8): Promise<ProductCardData[]> => {
+  async (limit: number, locale: Locale): Promise<ProductCardData[]> => {
     const rows = await db.product.findMany({
       where: { status: "ACTIVE", featured: true },
       orderBy: [{ createdAt: "desc" }, { name: "asc" }],
       take: limit,
-      select: productCardSelect,
+      select: productCardSelect(locale),
     });
     return rows.map(toProductCard);
   },
@@ -113,7 +126,7 @@ export const getActiveProductSlugs = unstable_cache(
   { tags: [CATALOG_TAGS.products], revalidate: REVALIDATE_SECONDS },
 );
 
-async function loadProductDetail(slug: string): Promise<ProductDetail | null> {
+async function loadProductDetail(slug: string, locale: Locale): Promise<ProductDetail | null> {
   const row = await db.product.findFirst({
     where: { slug, status: "ACTIVE" },
     select: {
@@ -121,7 +134,15 @@ async function loadProductDetail(slug: string): Promise<ProductDetail | null> {
       slug: true,
       name: true,
       description: true,
-      category: { select: { slug: true, name: true } },
+      category: {
+        select: { slug: true, name: true, translations: translationsFor(locale, { name: true }) },
+      },
+      translations: translationsFor(locale, {
+        name: true,
+        description: true,
+        seoTitle: true,
+        seoDescription: true,
+      }),
       variants: {
         orderBy: { position: "asc" },
         select: {
@@ -146,13 +167,18 @@ async function loadProductDetail(slug: string): Promise<ProductDetail | null> {
     },
   });
   if (!row) return null;
-  const { ratingSum, ratingCount, ...product } = row;
-  return { ...product, rating: ratingSummary(ratingSum, ratingCount) };
+  const { ratingSum, ratingCount, translations, category, ...product } = row;
+  const { translations: categoryTranslations, ...categoryBase } = category;
+  return {
+    ...localizeContent(product, translations[0]),
+    category: localizeContent(categoryBase, categoryTranslations[0]),
+    rating: ratingSummary(ratingSum, ratingCount),
+  };
 }
 
-/** Product detail, cached per slug and purged by `product:<slug>` or `products`. */
-export function getProductBySlug(slug: string): Promise<ProductDetail | null> {
-  return unstable_cache(() => loadProductDetail(slug), ["catalog:product", slug], {
+/** Product detail per slug and locale, purged by `product:<slug>` or `products` (all locales). */
+export function getProductBySlug(slug: string, locale: Locale): Promise<ProductDetail | null> {
+  return unstable_cache(() => loadProductDetail(slug, locale), ["catalog:product", slug, locale], {
     tags: [CATALOG_TAGS.products, CATALOG_TAGS.product(slug)],
     revalidate: REVALIDATE_SECONDS,
   })();

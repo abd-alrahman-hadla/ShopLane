@@ -39,6 +39,8 @@ const eslintConfig = [
       "src/app/**/{sitemap,robots}.ts",
       "*.config.{ts,mts,mjs,js}",
       "prisma.config.ts",
+      "src/middleware.ts",
+      "src/i18n/request.ts",
       "e2e/support/global-*.ts",
     ],
     rules: {

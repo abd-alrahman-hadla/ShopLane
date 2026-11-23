@@ -2,29 +2,28 @@
 
 import { useState, useTransition } from "react";
 import { BadgeCheckIcon } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { loadMoreReviews } from "@/features/reviews/actions";
 import type { PublicReview } from "@/features/reviews/queries";
+import type { Locale } from "@/i18n/routing";
+import { formatDate } from "@/lib/format";
 import { Stars } from "./stars";
 
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
-
 function ReviewItem({ review }: { review: PublicReview }) {
+  const t = useTranslations("reviews");
+  const locale = useLocale() as Locale;
   return (
     <li className="flex flex-col gap-2 py-5" data-testid="review">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <Stars rating={review.rating} />
         <span className="text-sm font-medium">{review.authorName}</span>
-        <span className="inline-flex items-center gap-1 text-xs text-emerald-700">
+        <span className="text-success inline-flex items-center gap-1 text-xs">
           <BadgeCheckIcon className="size-3.5" aria-hidden />
-          Verified buyer
+          {t("verifiedBuyer")}
         </span>
         <time className="text-muted-foreground text-xs" dateTime={review.createdAt}>
-          {dateFormatter.format(new Date(review.createdAt))}
+          {formatDate(review.createdAt, locale)}
         </time>
       </div>
       {/* Plain text: React escapes it, and line breaks are kept. */}
@@ -43,6 +42,7 @@ export function ReviewList({ productId, initialReviews, initialCursor }: ReviewL
   const [reviews, setReviews] = useState(initialReviews);
   const [cursor, setCursor] = useState(initialCursor);
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("reviews");
 
   function showMore(): void {
     if (!cursor) return;
@@ -66,7 +66,7 @@ export function ReviewList({ productId, initialReviews, initialCursor }: ReviewL
       </ul>
       {cursor && (
         <Button variant="outline" onClick={showMore} disabled={isPending} className="self-start">
-          {isPending ? "Loading…" : "Show more reviews"}
+          {isPending ? t("loading") : t("showMore")}
         </Button>
       )}
     </div>

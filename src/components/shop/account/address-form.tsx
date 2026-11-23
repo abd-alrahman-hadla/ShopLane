@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useActionState, useEffect, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,11 +40,12 @@ function Field({
   className,
 }: FieldProps) {
   const id = useId();
+  const t = useTranslations("addresses");
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <Label htmlFor={id}>
         {label}
-        {optional && <span className="text-muted-foreground font-normal"> (optional)</span>}
+        {optional && <span className="text-muted-foreground font-normal"> {t("optional")}</span>}
       </Label>
       <Input
         id={id}
@@ -75,6 +77,7 @@ export function AddressForm({ address, onDone }: AddressFormProps) {
     {},
   );
   const regionId = useId();
+  const t = useTranslations("addresses");
   const errors = state.fieldErrors ?? {};
 
   useEffect(() => {
@@ -86,7 +89,7 @@ export function AddressForm({ address, onDone }: AddressFormProps) {
       {address?.id && <input type="hidden" name="addressId" value={address.id} />}
       <Field
         name="fullName"
-        label="Full name"
+        label={t("fields.fullName")}
         defaultValue={address?.fullName}
         error={errors.fullName}
         autoComplete="name"
@@ -94,7 +97,7 @@ export function AddressForm({ address, onDone }: AddressFormProps) {
       />
       <Field
         name="line1"
-        label="Address"
+        label={t("fields.line1")}
         defaultValue={address?.line1}
         error={errors.line1}
         autoComplete="address-line1"
@@ -102,7 +105,7 @@ export function AddressForm({ address, onDone }: AddressFormProps) {
       />
       <Field
         name="line2"
-        label="Apartment, suite, etc."
+        label={t("fields.line2")}
         defaultValue={address?.line2}
         error={errors.line2}
         autoComplete="address-line2"
@@ -111,13 +114,13 @@ export function AddressForm({ address, onDone }: AddressFormProps) {
       />
       <Field
         name="city"
-        label="City"
+        label={t("fields.city")}
         defaultValue={address?.city}
         error={errors.city}
         autoComplete="address-level2"
       />
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor={regionId}>State</Label>
+        <Label htmlFor={regionId}>{t("fields.region")}</Label>
         <select
           id={regionId}
           name="region"
@@ -128,7 +131,7 @@ export function AddressForm({ address, onDone }: AddressFormProps) {
           aria-invalid={errors.region ? true : undefined}
         >
           <option value="" disabled>
-            Select…
+            {t("select")}
           </option>
           {US_STATES.map((state) => (
             <option key={state} value={state}>
@@ -140,14 +143,14 @@ export function AddressForm({ address, onDone }: AddressFormProps) {
       </div>
       <Field
         name="postalCode"
-        label="ZIP code"
+        label={t("fields.postalCode")}
         defaultValue={address?.postalCode}
         error={errors.postalCode}
         autoComplete="postal-code"
       />
       <Field
         name="phone"
-        label="Phone"
+        label={t("fields.phone")}
         defaultValue={address?.phone}
         error={errors.phone}
         autoComplete="tel"
@@ -160,11 +163,11 @@ export function AddressForm({ address, onDone }: AddressFormProps) {
       )}
       <div className="flex gap-2 sm:col-span-2">
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving…" : address?.id ? "Save address" : "Add address"}
+          {isPending ? t("saving") : address?.id ? t("save") : t("add")}
         </Button>
         {onDone && (
           <Button type="button" variant="ghost" onClick={onDone}>
-            Cancel
+            {t("cancel")}
           </Button>
         )}
       </div>

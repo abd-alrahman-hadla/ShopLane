@@ -4,6 +4,7 @@ import {
   evaluateCoupon,
   normalizeCouponCode,
   type CouponEvaluation,
+  type CouponRejection,
 } from "@/features/checkout/coupons";
 import { computeOrderTotals, lineTotalCents, type OrderTotals } from "@/features/checkout/pricing";
 import { dedupeItems, type CartItem } from "./cart";
@@ -86,7 +87,14 @@ export type CartQuoteLine = {
 
 export type CouponSummary =
   | { code: string; status: "applied"; discountCents: number }
-  | { code: string; status: "rejected"; message: string };
+  | {
+      code: string;
+      status: "rejected";
+      /** English text; the UI shows a translation of `reason`. */
+      message: string;
+      reason: CouponRejection;
+      minSubtotalCents?: number;
+    };
 
 export type CartQuote = {
   lines: CartQuoteLine[];
@@ -113,6 +121,10 @@ function summarizeCoupon(
     code: normalizeCouponCode(code),
     status: "rejected",
     message: COUPON_MESSAGES[evaluation.reason],
+    reason: evaluation.reason,
+    ...(evaluation.minSubtotalCents !== undefined && {
+      minSubtotalCents: evaluation.minSubtotalCents,
+    }),
   };
 }
 

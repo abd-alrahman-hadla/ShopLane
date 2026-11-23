@@ -1,14 +1,14 @@
 import { Button, Text } from "@react-email/components";
+import type { EmailI18n } from "./i18n";
 import { EmailLayout, emailColors } from "./layout";
 
-type SignInLinkEmailProps = { url: string };
+type SignInLinkEmailProps = { url: string; i18n: EmailI18n };
 
-export function SignInLinkEmail({ url }: SignInLinkEmailProps) {
+export function SignInLinkEmail({ url, i18n }: SignInLinkEmailProps) {
+  const { t } = i18n;
   return (
-    <EmailLayout preview="Your ShopLane sign-in link">
-      <Text style={{ fontSize: 16 }}>
-        Click the button below to sign in. The link expires in 24 hours.
-      </Text>
+    <EmailLayout i18n={i18n} preview={t("signIn.subject")}>
+      <Text style={{ fontSize: 16 }}>{t("signIn.body")}</Text>
       <Button
         href={url}
         style={{
@@ -20,15 +20,13 @@ export function SignInLinkEmail({ url }: SignInLinkEmailProps) {
           padding: "12px 20px",
         }}
       >
-        Sign in to ShopLane
+        {t("signIn.cta")}
       </Button>
-      <Text style={{ color: emailColors.muted, fontSize: 13 }}>
-        If you didn’t request this, you can safely ignore this email.
-      </Text>
+      <Text style={{ color: emailColors.muted, fontSize: 13 }}>{t("signIn.ignore")}</Text>
     </EmailLayout>
   );
 }
 
-export function signInLinkText(url: string): string {
-  return `Sign in to ShopLane:\n${url}\n\nThe link expires in 24 hours. If you didn't request it, ignore this email.`;
+export function signInLinkText(url: string, i18n: EmailI18n): string {
+  return i18n.t("signIn.text", { url });
 }

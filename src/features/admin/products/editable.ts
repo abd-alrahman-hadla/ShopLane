@@ -25,6 +25,13 @@ export type EditableProduct = {
     orderCount: number;
   }>;
   images: Array<{ id: string; url: string; alt: string; variantSku: string | null }>;
+  /** The Arabic version, or null when the product has none yet. */
+  arabic: {
+    name: string;
+    description: string;
+    seoTitle: string | null;
+    seoDescription: string | null;
+  } | null;
 };
 
 type AdminProduct = NonNullable<Awaited<ReturnType<typeof getAdminProduct>>>;
@@ -57,6 +64,14 @@ export function toEditableProduct(product: AdminProduct): EditableProduct {
       alt: image.alt,
       variantSku: image.variant?.sku ?? null,
     })),
+    arabic: product.translations[0]
+      ? {
+          name: product.translations[0].name,
+          description: product.translations[0].description,
+          seoTitle: product.translations[0].seoTitle,
+          seoDescription: product.translations[0].seoDescription,
+        }
+      : null,
   };
 }
 

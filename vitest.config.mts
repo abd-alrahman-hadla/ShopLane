@@ -17,6 +17,8 @@ export default defineConfig({
           exclude: ["**/*.int.test.ts", "**/node_modules/**"],
           setupFiles: ["./vitest.setup.ts"],
           restoreMocks: true,
+          // next-intl imports "next/navigation" without an extension; let Vite resolve it.
+          server: { deps: { inline: ["next-intl"] } },
         },
       },
       {
@@ -27,6 +29,7 @@ export default defineConfig({
           environment: "node",
           include: ["src/**/*.int.test.ts"],
           setupFiles: ["./src/test/integration-setup.ts"],
+          server: { deps: { inline: ["next-intl"] } },
           // One shared test database: run files one at a time.
           fileParallelism: false,
           testTimeout: 60_000,

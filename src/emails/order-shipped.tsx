@@ -1,23 +1,40 @@
 import { Button, Text } from "@react-email/components";
+import type { ReactNode } from "react";
 import { formatOrderNumber } from "@/features/checkout/order-number";
-import { EmailLayout, emailColors } from "./layout";
+import type { EmailI18n } from "./i18n";
+import { EmailLayout, Ltr, emailColors } from "./layout";
 
 export type ShippedEmailData = {
   number: number;
   carrier: string;
   trackingNumber: string;
   trackingUrl: string | null;
+  /** Names and variant titles already in the email's language. */
   items: Array<{ productName: string; variantTitle: string; quantity: number }>;
 };
 
-export function OrderShippedEmail({ order }: { order: ShippedEmailData }) {
+const tags = {
+  strong: (chunks: ReactNode) => (
+    <strong>
+      <Ltr>{chunks}</Ltr>
+    </strong>
+  ),
+  ltr: (chunks: ReactNode) => <Ltr>{chunks}</Ltr>,
+};
+
+export function OrderShippedEmail({ order, i18n }: { order: ShippedEmailData; i18n: EmailI18n }) {
+  const { t } = i18n;
   const number = formatOrderNumber(order.number);
   return (
-    <EmailLayout preview={`Order ${number} is on its way`}>
-      <Text style={{ fontSize: 20, fontWeight: 600 }}>Your order is on its way</Text>
+    <EmailLayout i18n={i18n} preview={t("shipped.preview", { number })}>
+      <Text style={{ fontSize: 20, fontWeight: 600 }}>{t("shipped.heading")}</Text>
       <Text>
-        Order <strong>{number}</strong> shipped with {order.carrier}. Tracking number:{" "}
-        <strong>{order.trackingNumber}</strong>.
+        {t.rich("shipped.body", {
+          number,
+          carrier: order.carrier,
+          tracking: order.trackingNumber,
+          ...tags,
+        })}
       </Text>
       {order.trackingUrl && (
         <Button
@@ -31,23 +48,30 @@ export function OrderShippedEmail({ order }: { order: ShippedEmailData }) {
             padding: "12px 20px",
           }}
         >
-          Track your package
+          {t("shipped.cta")}
         </Button>
       )}
       <Text style={{ color: emailColors.muted, marginTop: 24 }}>
         {order.items
-          .map((item) => `${item.quantity} × ${item.productName} (${item.variantTitle})`)
-          .join(", ")}
+          .map((item) =>
+            t("summary.line", {
+              quantity: item.quantity,
+              name: item.productName,
+              variant: item.variantTitle,
+            }),
+          )
+          .join(t("listSeparator"))}
       </Text>
     </EmailLayout>
   );
 }
 
-export function orderShippedText(order: ShippedEmailData): string {
+export function orderShippedText(order: ShippedEmailData, i18n: EmailI18n): string {
+  const { t } = i18n;
   const number = formatOrderNumber(order.number);
   return [
-    `Order ${number} shipped with ${order.carrier}.`,
-    `Tracking number: ${order.trackingNumber}`,
-    ...(order.trackingUrl ? [`Track it: ${order.trackingUrl}`] : []),
+    t("shipped.textShipped", { number, carrier: order.carrier }),
+    t("shipped.textTracking", { tracking: order.trackingNumber }),
+    ...(order.trackingUrl ? [t("shipped.textTrack", { url: order.trackingUrl })] : []),
   ].join("\n");
 }

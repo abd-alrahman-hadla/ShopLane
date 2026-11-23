@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { parseOrderNumber } from "@/features/account/orders";
 import type { DbClient } from "@/features/cart/quote";
+import { translationsFor } from "@/features/catalog/localize";
+import type { Locale } from "@/i18n/routing";
 
 export const ADMIN_ORDERS_PAGE_SIZE = 25;
 
@@ -86,7 +88,7 @@ export async function listAdminOrders(db: DbClient, filters: AdminOrderFilters) 
   };
 }
 
-export async function getAdminOrder(db: DbClient, id: string) {
+export async function getAdminOrder(db: DbClient, id: string, locale: Locale = "en") {
   return db.order.findUnique({
     where: { id },
     include: {
@@ -95,7 +97,17 @@ export async function getAdminOrder(db: DbClient, id: string) {
         orderBy: { id: "asc" },
         include: {
           variant: {
-            select: { stock: true, product: { select: { id: true, slug: true, name: true } } },
+            select: {
+              stock: true,
+              product: {
+                select: {
+                  id: true,
+                  slug: true,
+                  name: true,
+                  translations: translationsFor(locale, { name: true }),
+                },
+              },
+            },
           },
         },
       },

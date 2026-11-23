@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { cartQuoteInputSchema } from "@/features/cart/schemas";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -37,6 +38,7 @@ export async function startCheckout(input: unknown): Promise<StartCheckoutError>
       couponCode: parsed.data.couponCode,
       userId: session?.user?.id ?? null,
       email: session?.user?.email ?? null,
+      locale: await getLocale(),
     },
   );
 

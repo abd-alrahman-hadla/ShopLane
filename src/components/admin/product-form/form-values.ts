@@ -36,7 +36,11 @@ export type ProductFormValues = {
   seoDescription: string;
   variants: VariantRow[];
   images: ImageRow[];
+  /** Arabic content; all empty = no Arabic version. */
+  arabic: { name: string; description: string; seoTitle: string; seoDescription: string };
 };
+
+const EMPTY_ARABIC = { name: "", description: "", seoTitle: "", seoDescription: "" };
 
 let counter = 0;
 export function rowKey(prefix: string): string {
@@ -76,6 +80,7 @@ export function toFormValues(
       seoDescription: "",
       variants: [emptyVariant()],
       images: [],
+      arabic: { ...EMPTY_ARABIC },
     };
   }
   return {
@@ -106,6 +111,14 @@ export function toFormValues(
       alt: image.alt,
       variantSku: image.variantSku ?? "",
     })),
+    arabic: product.arabic
+      ? {
+          name: product.arabic.name,
+          description: product.arabic.description,
+          seoTitle: product.arabic.seoTitle ?? "",
+          seoDescription: product.arabic.seoDescription ?? "",
+        }
+      : { ...EMPTY_ARABIC },
   };
 }
 
@@ -160,6 +173,7 @@ export function toPayload(values: ProductFormValues): PayloadResult {
         alt: image.alt,
         variantSku: image.variantSku,
       })),
+      translations: { ar: { ...values.arabic } },
     },
   };
 }

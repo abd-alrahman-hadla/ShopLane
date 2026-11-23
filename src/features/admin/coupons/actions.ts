@@ -15,23 +15,23 @@ const AUDITED = [
   "isActive",
 ] as const;
 
-export const saveCoupon = adminMutation(couponFormSchema, async ({ tx, input }) => {
+export const saveCoupon = adminMutation(couponFormSchema, async ({ tx, input, t }) => {
   const existing = input.id ? await tx.coupon.findUnique({ where: { id: input.id } }) : null;
-  if (input.id && !existing) throw new AdminActionError("This coupon no longer exists.");
+  if (input.id && !existing) throw new AdminActionError(t("couponGone"));
 
   const clash = await tx.coupon.findFirst({
     where: { code: input.code, ...(existing ? { NOT: { id: existing.id } } : {}) },
     select: { id: true },
   });
-  if (clash) throw new AdminActionError("That code is already used.", { code: "Already used." });
+  if (clash) throw new AdminActionError(t("codeTaken"), { code: t("codeTakenField") });
 
   if (
     existing &&
     input.maxRedemptions !== null &&
     input.maxRedemptions < existing.redemptionCount
   ) {
-    throw new AdminActionError(`It has already been redeemed ${existing.redemptionCount} times.`, {
-      maxRedemptions: `At least ${existing.redemptionCount}.`,
+    throw new AdminActionError(t("alreadyRedeemed", { count: existing.redemptionCount }), {
+      maxRedemptions: t("atLeast", { count: existing.redemptionCount }),
     });
   }
   // Once redeemed, the discount terms are part of past orders; only the limits and window may change.
@@ -40,9 +40,7 @@ export const saveCoupon = adminMutation(couponFormSchema, async ({ tx, input }) 
     existing.redemptionCount > 0 &&
     (existing.type !== input.type || existing.value !== input.value)
   ) {
-    throw new AdminActionError(
-      "This coupon has been used, so its type and value can't change. Create a new code instead.",
-    );
+    throw new AdminActionError(t("termsLocked"));
   }
 
   const data = {
@@ -71,9 +69,9 @@ export const saveCoupon = adminMutation(couponFormSchema, async ({ tx, input }) 
   };
 });
 
-export const setCouponActive = adminMutation(couponActiveSchema, async ({ tx, input }) => {
+export const setCouponActive = adminMutation(couponActiveSchema, async ({ tx, input, t }) => {
   const coupon = await tx.coupon.findUnique({ where: { id: input.couponId } });
-  if (!coupon) throw new AdminActionError("Coupon not found.");
+  if (!coupon) throw new AdminActionError(t("couponNotFound"));
   await tx.coupon.update({ where: { id: coupon.id }, data: { isActive: input.isActive } });
   return {
     result: { isActive: input.isActive },
@@ -88,14 +86,14 @@ export const setCouponActive = adminMutation(couponActiveSchema, async ({ tx, in
 });
 
 /** Only never-used coupons can be deleted; used ones are deactivated to keep order history readable. */
-export const deleteCoupon = adminMutation(couponIdSchema, async ({ tx, input }) => {
+export const deleteCoupon = adminMutation(couponIdSchema, async ({ tx, input, t }) => {
   const coupon = await tx.coupon.findUnique({
     where: { id: input.couponId },
     include: { _count: { select: { orders: true } } },
   });
-  if (!coupon) throw new AdminActionError("Coupon not found.");
+  if (!coupon) throw new AdminActionError(t("couponNotFound"));
   if (coupon.redemptionCount > 0 || coupon._count.orders > 0) {
-    throw new AdminActionError("This coupon has been used. Deactivate it instead.");
+    throw new AdminActionError(t("couponUsed"));
   }
   await tx.coupon.delete({ where: { id: coupon.id } });
   return {
