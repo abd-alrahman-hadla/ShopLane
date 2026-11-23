@@ -13,9 +13,7 @@ export async function SiteFooter({ categories }: SiteFooterProps) {
     <footer className="bg-secondary/60 mt-24 border-t">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 text-sm sm:grid-cols-3 sm:px-6">
         <div className="flex flex-col gap-2">
-          <span className="font-semibold" dir="ltr">
-            ShopLane
-          </span>
+          <span className="font-semibold">ShopLane</span>
           <p className="text-muted-foreground max-w-xs">{t("tagline")}</p>
         </div>
         <nav aria-label={t("nav")} className="flex flex-col gap-2">
